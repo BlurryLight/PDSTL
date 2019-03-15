@@ -1,0 +1,175 @@
+﻿#ifndef ALLOCATOR_H
+#define ALLOCATOR_H
+/*
+ * Modified from Moya-lang/Allocator
+ * https://github.com/moya-lang/Allocator
+ */
+
+#include <cstddef> //std::size_t
+#include <new> //std::bad_alloc
+
+#define Memory_Alignment 8
+
+namespace pdstl {
+
+template <typename _T,unsigned short _GrowSize>
+class MemoryPool
+{
+private:
+
+
+
+    struct MemoryBlock
+    {
+       MemoryBlock* pBlock;
+    };
+
+    struct Buffer
+    {
+        Buffer* const pNext;
+       static const unsigned short BlockSize =  (sizeof (_T) + (Memory_Alignment - 1)) & ~ (Memory_Alignment - 1); //Magic but necessary
+
+      //  static const unsigned short BlockSize =  sizeof(_T) > sizeof (MemoryBlock) ? sizeof(_T) : sizeof(MemoryBlock); //Magic but necessary
+        unsigned char data[BlockSize * _GrowSize]; //BlockSize must be static
+
+        Buffer(Buffer* _next):pNext(_next){}
+
+        MemoryBlock* GetBlock(unsigned short index)
+        {
+            return reinterpret_cast<MemoryBlock*>(&data[BlockSize * index]);
+        }
+    };
+
+    Buffer* pBuffer  = nullptr;
+    MemoryBlock* pBlockFree = nullptr;
+    unsigned short BufferedBlocks = _GrowSize;
+    MemoryPool(MemoryPool&& ) = delete;
+    MemoryPool(const MemoryPool& ) = delete;
+    MemoryPool operator=(MemoryPool&) = delete;
+    MemoryPool operator=(const MemoryPool&) = delete;
+
+public:
+    MemoryPool() = default;
+    _T* allocate()
+    {
+        if(pBlockFree)
+        {
+            auto tmp = pBlockFree;
+            auto num = (Buffer::BlockSize / sizeof (MemoryBlock));
+            while(num--)    pBlockFree = pBlockFree->pBlock;
+            return reinterpret_cast<_T*>(tmp);
+        }
+
+        if(BufferedBlocks >= _GrowSize)
+        {
+            pBuffer = new Buffer(pBuffer); //A linked list : new one and add it to the head
+            BufferedBlocks = 0;
+        }
+
+        auto atmp = BufferedBlocks;
+        return reinterpret_cast<_T*>(pBuffer->GetBlock(BufferedBlocks++));
+    }
+
+    _T* allocate(size_t num)
+    {
+        //return continuous blocks
+
+        if(BufferedBlocks >= _GrowSize)
+        {
+            pBuffer = new Buffer(pBuffer); //A linked list : new one and add it to the head
+            BufferedBlocks = 0;
+        }
+       MemoryBlock* tmp =pBuffer->GetBlock(BufferedBlocks);
+       BufferedBlocks += num; // i+= 1  equals ++i
+       return reinterpret_cast<_T*>(tmp);
+    }
+//    void* operator new(size_t, _T* p)
+//    {
+//        return  reinterpret_cast<MemoryBlock*>(p);
+//    }
+    //single deallocate was deprecated since it cannot work with multiple deallocate
+    void deallocate(_T* pointer)
+    {
+        deallocate(pointer,1);
+//        MemoryBlock* tmp = reinterpret_cast<MemoryBlock*>(pointer); //anotehr linked list to record released block
+
+//         std::cout<<"in single deallocate"<<std::endl;
+//        tmp->pBlock = pBlockFree;
+//         std::cout<<"tmp address"<<tmp<<std::endl;
+//        pBlockFree = tmp;
+    }
+    void deallocate(_T* pointer, size_t n)
+    {
+        MemoryBlock* tmp = reinterpret_cast<MemoryBlock*>(pointer);
+         auto num = (Buffer::BlockSize / sizeof (MemoryBlock)) * n;
+        while(num--)
+        {
+            tmp->pBlock = pBlockFree;
+            pBlockFree = tmp;
+            tmp +=1;
+        }
+    }
+    ~MemoryPool()
+    {
+        while(pBuffer)
+        {
+            auto tmp = pBuffer;
+            pBuffer = pBuffer->pNext;
+            delete tmp;
+        }
+    }
+};
+
+template <typename _T,unsigned short _GrowSize = 1024>
+class Allocator : private MemoryPool<_T,_GrowSize>
+{
+public:
+    typedef _T              value_type;
+    typedef _T*             pointer;
+    typedef const _T*       const_pointer;
+    typedef _T&             reference;
+    typedef const _T&       const_reference;
+    typedef std::size_t     size_type; //<cstddef>
+    typedef std::ptrdiff_t  difference_type;
+
+    template <typename _U>
+    struct rebind
+    {
+        typedef Allocator<_U,_GrowSize> other;
+    };
+
+    pointer allocate(size_type n ,const void* hint = 0)
+    {
+        if(hint || n <= 0)
+            throw std::bad_alloc();
+        if(n == 1)
+            return MemoryPool<_T,_GrowSize>::allocate();
+        else
+            return MemoryPool<_T,_GrowSize>::allocate(n);
+    }
+
+    void deallocate(pointer p,size_type n) //n must equle to that allocated
+    {
+        if(n <= 0)
+            throw std::bad_alloc();
+        else {
+            MemoryPool<_T,_GrowSize>::deallocate(p,n);
+        }
+
+    }
+
+    void construct(pointer p,const_reference val)
+    {
+        new(p)_T(val);
+    }
+
+    void destroy(pointer p)
+    {
+        p->~_T();
+    }
+};
+
+
+}
+
+#endif // ALLOCATOR_H
