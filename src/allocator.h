@@ -7,6 +7,9 @@
 
 #include <cstddef> //std::size_t
 #include <new> //std::bad_alloc
+#ifdef DEBUG_FLAG
+#include <iostream>
+#endif
 
 #define Memory_Alignment 8
 
@@ -30,6 +33,7 @@ private:
        static const unsigned short BlockSize =  (sizeof (_T) + (Memory_Alignment - 1)) & ~ (Memory_Alignment - 1); //Magic but necessary
 
       //  static const unsigned short BlockSize =  sizeof(_T) > sizeof (MemoryBlock) ? sizeof(_T) : sizeof(MemoryBlock); //Magic but necessary
+
         unsigned char data[BlockSize * _GrowSize]; //BlockSize must be static
 
         Buffer(Buffer* _next):pNext(_next){}
@@ -43,13 +47,22 @@ private:
     Buffer* pBuffer  = nullptr;
     MemoryBlock* pBlockFree = nullptr;
     unsigned short BufferedBlocks = _GrowSize;
+
+public:
     MemoryPool(MemoryPool&& ) = delete;
     MemoryPool(const MemoryPool& ) = delete;
     MemoryPool operator=(MemoryPool&) = delete;
     MemoryPool operator=(const MemoryPool&) = delete;
-
-public:
     MemoryPool() = default;
+
+    //useless method
+
+//    static MemoryPool& getInstance()
+//    {
+//        static MemoryPool instance;
+//        return instance;
+//    }
+
     _T* allocate()
     {
         if(pBlockFree)
@@ -83,20 +96,12 @@ public:
        BufferedBlocks += num; // i+= 1  equals ++i
        return reinterpret_cast<_T*>(tmp);
     }
-//    void* operator new(size_t, _T* p)
-//    {
-//        return  reinterpret_cast<MemoryBlock*>(p);
-//    }
     //single deallocate was deprecated since it cannot work with multiple deallocate
     void deallocate(_T* pointer)
     {
-        deallocate(pointer,1);
-//        MemoryBlock* tmp = reinterpret_cast<MemoryBlock*>(pointer); //anotehr linked list to record released block
 
-//         std::cout<<"in single deallocate"<<std::endl;
-//        tmp->pBlock = pBlockFree;
-//         std::cout<<"tmp address"<<tmp<<std::endl;
-//        pBlockFree = tmp;
+        deallocate(pointer,1);
+
     }
     void deallocate(_T* pointer, size_t n)
     {
@@ -121,7 +126,8 @@ public:
 };
 
 template <typename _T,unsigned short _GrowSize = 1024>
-class Allocator : private MemoryPool<_T,_GrowSize>
+class Allocator : public MemoryPool<_T,_GrowSize>
+//class Allocator
 {
 public:
     typedef _T              value_type;
@@ -138,11 +144,31 @@ public:
         typedef Allocator<_U,_GrowSize> other;
     };
 
+    Allocator() = default;
+    //copy construct & rebind construct must exsit to work with stl containers
+    Allocator( const Allocator& other) : Allocator(){}
+    template <typename _U>
+    Allocator(const Allocator<_U,_GrowSize> &d) : Allocator() {}
+
+    template <typename _U>
+    bool operator==(const Allocator<_U>&) const
+    {
+        return true;
+    }
+    template <typename _U>
+    bool operator!=(const Allocator<_U>&) const
+    {
+        return false;
+    }
+
+
     pointer allocate(size_type n ,const void* hint = 0)
     {
         if(hint || n <= 0)
             throw std::bad_alloc();
         if(n == 1)
+            //deprecated method
+//            return MemoryPool<_T,_GrowSize>::getInstance().allocate();
             return MemoryPool<_T,_GrowSize>::allocate();
         else
             return MemoryPool<_T,_GrowSize>::allocate(n);

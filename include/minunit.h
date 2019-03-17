@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2012 David Siñuela Pastor, siu.4coders@gmail.com
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -26,7 +26,6 @@
 #ifdef __cplusplus
 	extern "C" {
 #endif
-
 #if defined(_WIN32)
 #include <Windows.h>
 #if defined(_MSC_VER) && _MSC_VER < 1900

@@ -1,3 +1,3 @@
 ﻿INCLUDE_DIRECTORIES("${PROJECT_SOURCE_DIR}/include")
-SET(SRC_LIST main.cpp allocator.h )
-ADD_EXECUTABLE(main ${SRC_LIST})
+SET(SRC_LIST  allocator.h )
+#ADD_EXECUTABLE(main ${SRC_LIST})
