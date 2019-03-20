@@ -1,9 +1,9 @@
 ﻿cmake_minimum_required(VERSION 2.8)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CXX_STANDARD_REQUIRED C11)
+set(CXX_STANDARD_REQUIRED 11)
 project(PDSTL)
-set(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin)
+set(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/build)
 add_subdirectory(src)
 add_subdirectory(test)
 
