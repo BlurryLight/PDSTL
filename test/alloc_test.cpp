@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <iostream>
 #include "../src/allocator.h"
 
 
@@ -32,7 +33,7 @@ MU_TEST(test_alloc_check) {
    mu_check(vec[2] == "3");
    mu_check(vec[0] != "2");
    vec.push_back("abc");
-   mu_check(*(vec.cend()) == "abc");
+   mu_check(*(vec.cend() - 1) == "abc");
 
 }
 MU_TEST_SUITE(test_alloc_suite) {

@@ -10,3 +10,5 @@ add_subdirectory(test)
 
 enable_testing()
 
+add_test(test_alloc ${CMAKE_SOURCE_DIR}/build/test/test_alloc)
+add_test(test_smartptr ${CMAKE_SOURCE_DIR}/build/test/test_smartptr)
