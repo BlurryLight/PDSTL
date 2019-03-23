@@ -1,4 +1,4 @@
-﻿#include "minunit.h"
+﻿#include "../include/minunit.h"
 
 #include <string>
 #include <vector>
@@ -30,9 +30,18 @@ MU_TEST(test_alloc_check) {
    mu_check(vec[0] == "1");
    mu_check(vec[1] == "2");
    mu_check(vec[2] == "3");
+   mu_check(vec[0] != "2");
+   vec.push_back("abc");
+   mu_check(*(vec.cend()) == "abc");
 
 }
 MU_TEST_SUITE(test_alloc_suite) {
     MU_RUN_TEST(test_alloc_check);
+}
+
+int main(int argc, char *argv[]) {
+    MU_RUN_SUITE(test_alloc_suite);
+    MU_REPORT();
+    return minunit_status;
 }
 
