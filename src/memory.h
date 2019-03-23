@@ -67,14 +67,23 @@ public:
     void reset()
     {
         release();
-        base_ptr = new shared_ptr_base<T>(nullptr);
+//        base_ptr = new shared_ptr_base<T>(nullptr);
+        shared_ptr().swap(*this);
     }
-    template <typename U>
-    void reset(U* ptr)
+
+    void swap(shared_ptr& other)
     {
-        release();
-        base_ptr = new shared_ptr_base<T>(reinterpret_cast<T*>(ptr));
+        std::swap(this->base_ptr,other.base_ptr);
     }
+
+    // FATAL bug here
+//    template <typename U>
+//    void reset(U* ptr)
+//    {
+//        if(ptr==nullptr ) return;
+//        release();
+//        base_ptr = new shared_ptr_base<T>(reinterpret_cast<T*>(ptr)); //very dangerous; may cause segmentation fault
+//    }
 
     ~shared_ptr()
     {
