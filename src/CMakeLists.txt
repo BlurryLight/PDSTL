@@ -1,3 +1,0 @@
-﻿INCLUDE_DIRECTORIES("${PROJECT_SOURCE_DIR}/include")
-SET(SRC_LIST  allocator.h memory.h)
-#ADD_EXECUTABLE(main ${SRC_LIST})

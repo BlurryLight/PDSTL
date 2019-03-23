@@ -16,7 +16,7 @@ MU_TEST(test_shared_ptr_check)
     mu_check(ptr.unique() == false);
 
     //value shared_ptr
-    //sub scope to test destructor
+    //sub scope to test destrucor
     {
         static int released_times = 0;
         struct bulk
