@@ -120,9 +120,41 @@ MU_TEST(test_shared_ptr_check)
 
 }
 
+MU_TEST(test_unique_ptr_check)
+{
+    //value potiner
+    {
+       pdstl::unique_ptr<int> p1(new int(48));
+       mu_assert_int_eq(48,*p1);
+       pdstl::unique_ptr<int> p2(std::move(p1));
+       mu_assert_int_eq(48,*p2);
+       mu_check(p1==nullptr);
+
+       pdstl::unique_ptr<int> p3(new int(100));
+       pdstl::unique_ptr<int> p4;
+       p4.reset(p3.release());
+       mu_assert_int_eq(100,*p4);
+       mu_check(p3==nullptr);
+
+       pdstl::unique_ptr<int> p5(new int(48));
+       pdstl::unique_ptr<int> p6;
+       p6 = std::move(p5);
+       mu_assert_int_eq(48,*p6);
+       mu_check(p5==nullptr);
+    }
+    //comparing
+    {
+        int* a = new int(5);
+       pdstl::unique_ptr<int> p1(a);
+       pdstl::unique_ptr<int> p2(new int(5));
+       mu_check(p1==p1);
+       mu_check(p1!=p2);
+    }
+}
 MU_TEST_SUITE(test_smartptr_suite)
 {
     MU_RUN_TEST(test_shared_ptr_check);
+    MU_RUN_TEST(test_unique_ptr_check);
 }
 int main(int argc, char *argv[]) {
     MU_RUN_SUITE(test_smartptr_suite);
