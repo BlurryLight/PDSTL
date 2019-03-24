@@ -3,6 +3,7 @@
 
 #include <algorithm> //std::swap
 #include "allocator.h"
+#include <utility>
 
 #define DEBUG_FLAG
 #ifdef DEBUG_FLAG
@@ -28,6 +29,13 @@ public:
     explicit unique_ptr(std::nullptr_t):res_ptr(nullptr){}
     explicit unique_ptr(unique_ptr&) = delete;
     explicit unique_ptr(const unique_ptr&) = delete;
+
+    //this constructor is needed to work with make_unique
+    template <class U>
+    unique_ptr(unique_ptr<U>&& u):res_ptr(u.res_ptr)
+    {
+        u.res_ptr = nullptr;
+    }
 
     explicit unique_ptr(T* p):res_ptr(p){}
     explicit unique_ptr(unique_ptr&& ptr):res_ptr(ptr.res_ptr)
@@ -123,8 +131,12 @@ bool operator<(const unique_ptr<T>& left,const unique_ptr<U>& right)
     return (left.get() < right.get());
 }
 
+template<typename T, typename... Args>
+unique_ptr<T> make_unique(Args&&... args)
+{
+    return unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
 
-
-};
+};//pdstl
 
 #endif // UNIQUE_PTR_IMPL_H

@@ -12,6 +12,7 @@
 namespace pdstl
 {
 template <typename T> class shared_ptr;
+template <typename T> class weak_ptr;
 template <typename T> class shared_ptr_base;
 template <typename T>
 class shared_ptr_base
@@ -36,6 +37,7 @@ public :
     }
 
     friend class shared_ptr<T>;
+    friend class weak_ptr<T>;
 
     T* res_get()
     {
@@ -69,6 +71,7 @@ class shared_ptr
 {
 private:
     shared_ptr_base<T>* base_ptr;
+    template <class Y> friend class weak_ptr;
     void release()
     {
         if(base_ptr->decr() == 0)
@@ -91,6 +94,7 @@ public:
 
     explicit shared_ptr():base_ptr(new shared_ptr_base<T>(nullptr)){}
     explicit shared_ptr(T* p):base_ptr(new shared_ptr_base<T>(p)){}
+    explicit shared_ptr(const weak_ptr<T>& p):base_ptr(p.base_ptr){base_ptr->incr();}
     explicit shared_ptr(const shared_ptr& ptr):base_ptr(ptr.base_ptr)
     {
         base_ptr->incr();
@@ -213,6 +217,68 @@ bool operator<(const shared_ptr<T>& left,const shared_ptr<U>& right)
 {
     return (left.get() < right.get());
 }
+
+template <typename T,typename... Args>
+shared_ptr<T> make_shared(Args&&... args)
+{
+    return shared_ptr<T>(new T(std::forward<Args>(args)...));
+}
+
+
+
+template <typename T>
+class weak_ptr
+{
+private:
+    template <class Y> friend class shared_ptr;
+    shared_ptr_base<T>* base_ptr;
+public:
+    explicit weak_ptr():base_ptr(new shared_ptr_base<T>(nullptr)){}
+    explicit weak_ptr(const weak_ptr& ptr):base_ptr(ptr.base_ptr){}
+    explicit weak_ptr(const shared_ptr<T>& ptr):base_ptr(ptr.base_ptr){}
+    explicit weak_ptr(weak_ptr&& ptr):base_ptr(ptr.base_ptr){ptr.base_ptr=nullptr;}
+//    explicit weak_ptr(weak_ptr&& ptr):base_ptr(ptr.base_ptr){ptr.release();}
+    ~weak_ptr(){}
+    void reset()
+    {
+        base_ptr = nullptr;
+    }
+    void swap(weak_ptr& ptr)
+    {
+        std::swap(base_ptr,ptr.base_ptr);
+    }
+    weak_ptr& operator=(const weak_ptr& ptr)
+    {
+        weak_ptr(ptr).swap(*this);
+    }
+    weak_ptr& operator=(const shared_ptr<T>& ptr)
+    {
+        weak_ptr(ptr).swap(*this);
+    }
+    weak_ptr& operator=(weak_ptr&& ptr)
+    {
+        weak_ptr(std::move(ptr)).swap(*this);
+    }
+    int use_count() const
+    {
+        if(!base_ptr)
+            return 0;
+        return base_ptr->use_count();
+    }
+    bool expired() const
+    {
+        if(this->use_count() == 0)
+            return true;
+    }
+    shared_ptr<T> lock() const
+    {
+       return  expired() ? shared_ptr<T>() : shared_ptr<T>(*this);
+    }
+
+
+
+
+};
 
 
 };

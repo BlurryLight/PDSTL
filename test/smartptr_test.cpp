@@ -117,6 +117,20 @@ MU_TEST(test_shared_ptr_check)
        mu_check(!(ptr2 == ptr3));
 
     }
+    //factory function test
+    {
+       struct data
+       {
+           int d1;
+           int d2;
+           data(int a,int b):d1(a),d2(b){}
+       };
+
+       auto ptr1 = make_shared<data>(1,2);
+
+       mu_assert_int_eq(1,ptr1->d1);
+       mu_assert_int_eq(2,ptr1->d2);
+    }
 
 }
 
@@ -150,11 +164,48 @@ MU_TEST(test_unique_ptr_check)
        mu_check(p1==p1);
        mu_check(p1!=p2);
     }
+    {
+       struct data
+       {
+           int d1;
+           int d2;
+           data(int a,int b):d1(a),d2(b){}
+       };
+
+       pdstl::unique_ptr<data> ptr1 = make_unique<data>(1,2);
+       mu_assert_int_eq(1,ptr1->d1);
+       mu_assert_int_eq(2,ptr1->d2);
+    }
+}
+
+MU_TEST(test_weak_ptr_check)
+{
+    pdstl::weak_ptr<int> ptr1;
+    {
+        pdstl::shared_ptr<int> ptr2(new int(40));
+        ptr1 = ptr2;
+        mu_assert_int_eq(40,*(ptr1.lock()));
+    }
+    mu_assert_int_eq(1,ptr1.expired());
+    //use count
+    {
+        pdstl::shared_ptr<int> ptr3(new int(555));
+        pdstl::weak_ptr<int> ptr2(ptr3);
+        pdstl::weak_ptr<int> ptr4(ptr2);
+
+        mu_assert_int_eq(1,ptr3.use_count());
+        mu_assert_int_eq(1,ptr2.use_count());
+        mu_assert_int_eq(1,ptr4.use_count());
+    }
+
+    mu_check(ptr1.lock() == nullptr);
+
 }
 MU_TEST_SUITE(test_smartptr_suite)
 {
     MU_RUN_TEST(test_shared_ptr_check);
     MU_RUN_TEST(test_unique_ptr_check);
+    MU_RUN_TEST(test_weak_ptr_check);
 }
 int main(int argc, char *argv[]) {
     MU_RUN_SUITE(test_smartptr_suite);
