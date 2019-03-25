@@ -12,5 +12,6 @@ set(CMAKE_CXX_STANDARD 11)
 add_executable(test_alloc alloc_test.cpp)
 add_executable(test_smartptr smartptr_test.cpp)
 add_executable(test_type_traits type_traits_test.cpp)
+add_executable(test_iterator_traits iterator_test.cpp)
 
 

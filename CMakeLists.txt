@@ -11,3 +11,4 @@ enable_testing()
 
 add_test(test_alloc ${CMAKE_SOURCE_DIR}/build/test/test_alloc)
 add_test(test_smartptr ${CMAKE_SOURCE_DIR}/build/test/test_smartptr)
+add_test(test_type_traits ${CMAKE_SOURCE_DIR}/build/test/test_type_traits)

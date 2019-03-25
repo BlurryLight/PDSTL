@@ -5,6 +5,7 @@
  * https://github.com/moya-lang/Allocator
  */
 
+
 #include <cstddef> //std::size_t
 #include <new> //std::bad_alloc
 #ifdef DEBUG_FLAG
@@ -67,9 +68,10 @@ public:
     {
         if(pBlockFree)
         {
-            auto tmp = pBlockFree;
+            auto tmp = pBlockFree; //记录block开始分配时的链表首地址
             auto num = (Buffer::BlockSize / sizeof (MemoryBlock));
             while(num--)    pBlockFree = pBlockFree->pBlock;
+            //移动链表,这里暗含了链表是连续整块的。因为链表是由deallocate生成的,它只有在回收连续整块的内存时回收到链表里
             return reinterpret_cast<_T*>(tmp);
         }
 
