@@ -131,6 +131,23 @@ MU_TEST(test_shared_ptr_check)
        mu_assert_int_eq(1,ptr1->d1);
        mu_assert_int_eq(2,ptr1->d2);
     }
+    //deleter
+    {
+        struct test_int_deleter
+        {
+            void operator()(int *p)
+            {
+                std::cout<<"lmao"<<std::endl;
+                delete p;
+            }
+        };
+
+        shared_ptr<int> ptr1(new int(5),test_int_deleter());
+        ptr1.reset();
+        //should show lmao
+        shared_ptr<int> ptr3;
+        ptr3.reset(new int(10),test_int_deleter());
+    }
 
 }
 

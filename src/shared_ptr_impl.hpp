@@ -3,6 +3,8 @@
 
 #include <algorithm> //std::swap
 #include "allocator.h"
+#include "functional"//for std::function
+
 
 #define DEBUG_FLAG
 #ifdef DEBUG_FLAG
@@ -18,9 +20,13 @@ template <typename T>
 class shared_ptr_base
 {
 public :
+    typedef std::function<void(T*)> deleter_type;
     shared_ptr_base()  = delete;
-    shared_ptr_base(T* p,int c = 1) : res_ptr(p) { count = new int(c);}
-    shared_ptr_base(T* p,int* c ) : res_ptr(p),count(c) {}
+    shared_ptr_base(T* p,int c = 1,deleter_type d = deleter_type(_default_deleter<T>()))
+        : res_ptr(p),_deleter(d) { count = new int(c);}
+    shared_ptr_base(T* p,int *c,deleter_type d = deleter_type(_default_deleter<T>()))
+        : res_ptr(p),_deleter(d),count(c){}
+//    shared_ptr_base(T* p,int* c ) : res_ptr(p),count(c) {}
     shared_ptr_base(const shared_ptr_base&) = delete;
     shared_ptr_base(shared_ptr_base&&) = delete;
     shared_ptr_base operator=(shared_ptr_base&) = delete;
@@ -29,11 +35,10 @@ public :
     {
         if(res_ptr)// exclude nullptr
         {
-            delete res_ptr;
+//            delete res_ptr;
+            _deleter(res_ptr);
             delete count;
         }
-
-
     }
 
     friend class shared_ptr<T>;
@@ -62,8 +67,20 @@ public :
         return count;
     }
 private:
+    template <typename U>
+    class _default_deleter
+    {
+    public:
+        void operator()(const U* ptr){
+            if(ptr) delete ptr;
+        }
+        void operator()( U* ptr){
+            if(ptr) delete ptr;
+        }
+    };
     T* res_ptr;
     int* count;
+    deleter_type _deleter;
 };
 
 template <typename T>
@@ -99,6 +116,11 @@ public:
     {
         base_ptr->incr();
     }
+    template <class U,class Deleter>
+    explicit shared_ptr(U* ptr,Deleter d):base_ptr(new shared_ptr_base<U>(ptr,new int(1),d)){}
+
+    template <class Deleter>
+    explicit shared_ptr(std::nullptr_t,Deleter d):base_ptr(new shared_ptr_base<T>(nullptr,new int(1),d)){}
 
     template <typename U>
     explicit shared_ptr(const shared_ptr<U>& ptr,element_type* p):
@@ -124,6 +146,12 @@ public:
         if(ptr==nullptr ||this->get() == ptr) return;
         release();
         base_ptr = new shared_ptr_base<T>(ptr);
+    }
+    template <typename U,class deleter>
+    void reset(U* ptr,deleter p)
+    {
+        if(ptr==nullptr ||this->get() == ptr) return;
+        shared_ptr(ptr,p).swap(*this); // cppreference
     }
 
     ~shared_ptr()
