@@ -31,7 +31,8 @@ private:
     struct Buffer
     {
         Buffer* const pNext;
-       static const unsigned short BlockSize =  (sizeof (_T) + (Memory_Alignment - 1)) & ~ (Memory_Alignment - 1); //Magic but necessary
+
+       static const unsigned short BlockSize = (sizeof (_T) > 4) ? (sizeof (_T) + (Memory_Alignment - 1)) & ~ (Memory_Alignment - 1) : 4; //Magic but necessary
 
       //  static const unsigned short BlockSize =  sizeof(_T) > sizeof (MemoryBlock) ? sizeof(_T) : sizeof(MemoryBlock); //Magic but necessary
 
