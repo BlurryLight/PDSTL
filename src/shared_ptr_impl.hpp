@@ -1,4 +1,4 @@
-﻿#ifndef SHARED_PTR_IMPL_H
+#ifndef SHARED_PTR_IMPL_H
 #define SHARED_PTR_IMPL_H
 
 #include <algorithm> //std::swap

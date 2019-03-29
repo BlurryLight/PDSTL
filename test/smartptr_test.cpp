@@ -1,4 +1,4 @@
-﻿#include "../include/minunit.h"
+#include "../include/minunit.h"
 #include "../src/memory.h"
 #include <memory>
 

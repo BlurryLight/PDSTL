@@ -1,4 +1,4 @@
-﻿#ifndef VECTOR_H
+#ifndef VECTOR_H
 #define VECTOR_H
 
 #define DEBUG_FLAG

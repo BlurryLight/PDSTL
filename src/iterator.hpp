@@ -1,4 +1,4 @@
-﻿#ifndef ITERATOR_HPP
+#ifndef ITERATOR_HPP
 #define ITERATOR_HPP
 #include <cstddef> //for std::nullptr_t
 namespace pdstl {

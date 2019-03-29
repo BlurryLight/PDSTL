@@ -1,4 +1,4 @@
-﻿project(test)
+project(test)
 cmake_minimum_required(VERSION 2.8)
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/include")
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/test")

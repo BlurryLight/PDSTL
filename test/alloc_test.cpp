@@ -1,4 +1,4 @@
-﻿#include "../include/minunit.h"
+#include "../include/minunit.h"
 
 #include <string>
 #include <vector>

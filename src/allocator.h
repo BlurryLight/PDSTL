@@ -1,4 +1,4 @@
-﻿#ifndef ALLOCATOR_H
+#ifndef ALLOCATOR_H
 #define ALLOCATOR_H
 /*
  * Modified from Moya-lang/Allocator
