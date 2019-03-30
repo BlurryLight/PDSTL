@@ -100,7 +100,43 @@ MU_TEST(test_vector_check) {
         vec1.reserve(100);
         mu_assert_int_eq(3,vec1.size());
         mu_assert_int_eq(100,vec1.capacity());
+    }
 
+    //back and front
+    {
+        vector<int> vec1{1,2,3};
+        mu_assert_int_eq(1,vec1.front());
+        mu_assert_int_eq(3,vec1.back());
+        const vector<int> vec2{5,6,7};
+        mu_assert_int_eq(5,vec2.front());
+        mu_assert_int_eq(7,vec2.back());
+    }
+    //insert
+    {
+        vector<int> vec1{1,2,3};
+        vec1.insert(vec1.end(),4);
+        for(int i=0;i<4;++i)
+            mu_check(vec1.at(i) == i + 1);
+
+       vector<int> vec2{1};
+        vec2.insert(vec2.end(),10,3);
+        mu_check(vec2.at(0) ==  1);
+        for(int i=1;i<10;++i)
+            mu_check(vec2.at(i) ==  3);
+
+       std::vector<int> vec3{1,1,1};
+       vector<int> vec4;
+       vec4.insert(vec4.begin(),vec3.begin(),vec3.end());
+        for(int i=0;i<2;++i)
+            mu_check(vec4.at(i) ==  1);
+
+       vector<int> vec5;
+       vec5.insert(vec5.begin(),{1,1,1});
+        for(int i=0;i<2;++i)
+            mu_check(vec4.at(i) ==  1);
+
+        vec5.push_back(5);
+        mu_check(vec5.back() ==  5);
 
     }
 

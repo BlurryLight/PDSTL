@@ -1,7 +1,7 @@
 #ifndef VECTOR_H
 #define VECTOR_H
 
-//#define DEBUG_FLAG
+#define DEBUG_FLAG
 
 #include <cstddef>
 #ifdef DEBUG_FLAG
@@ -75,14 +75,14 @@ public:
 
     //iterators
 
-    iterator begin();
-    const_iterator cbegin() const;
-    iterator end();
-    const_iterator cend() const;
-    reverse_iterator rbegin();
-    const_reverse_iterator crbegin() const;
-    reverse_iterator rend();
-    const_reverse_iterator crend() const;
+    iterator begin() { return _arrStart;}
+    const_iterator cbegin() const {return _arrStart;}
+    iterator end() { return _arrEnd + 1;}
+    const_iterator cend() const {return _arrEnd + 1;}
+    reverse_iterator rbegin() {return reverse_iterator(_arrEnd + 1);}
+    const_reverse_iterator crbegin() const {return reverse_iterator(_arrEnd + 1);}
+    reverse_iterator rend() {return reverse_iterator(_arrStart);}
+    const_reverse_iterator crend() const {return reverse_iterator(_arrStart);}
 
     //bool
 
@@ -119,20 +119,21 @@ public:
     void resize(size_type n);
     void resize(size_type n,const T& val);
     void push_back(const T& val);
+    void push_back(T&& val);
 
     template <typename... Args>
     void emplace_back(Args&&... args);
     template <typename... Args>
     iterator emplace_back(const_iterator pos,Args&&... args);
 
-    void push_back(T&& val);
     void pop_back();
     void swap(vector& other);
     void clear();
     iterator insert(const_iterator pos,const T& val);
     iterator insert(const_iterator pos,T&& val);
     iterator insert(const_iterator pos,size_type n,const T& val);
-    template <typename InputIt>
+//    iterator insert(const_iterator pos,size_type n,T&& val);
+    template <typename InputIt,typename = isInputIterator<InputIt> >
     iterator insert(const_iterator pos,InputIt first,InputIt last);
     iterator insert(const_iterator pos,std::initializer_list<T> ilist);
 
@@ -144,7 +145,9 @@ public:
 template <typename T,class Alloc>
 vector<T,Alloc>::vector() noexcept
 {
-    _arrStart= Allocator<T>::allocate(4);
+    vec_size = 0;
+    resrv_size  = 4;
+    _arrStart= dataAlloc.allocate(resrv_size);
     _arrEnd = _arrStart;
     _StorageEnd = _arrStart + 4;
 }
@@ -153,10 +156,11 @@ template <typename T,class Alloc>
 vector<T,Alloc>::vector(typename vector<T,Alloc>::size_type n)
 {
      resrv_size = n * 2; //reserve factor = 2
+     vec_size = n;
     _arrStart= dataAlloc.allocate(resrv_size);
     for(size_type i = 0;i<n;++i)
         dataAlloc.construct(_arrStart + i,T());
-    _arrEnd = _arrStart + n;
+    _arrEnd = _arrStart + vec_size - 1;
     _StorageEnd = _arrStart + resrv_size;
 }
 
@@ -287,6 +291,7 @@ void vector<T,Alloc>::shrink()
     T* _oldarrStart = _arrStart;
     auto _oldresrv_size = resrv_size;
     _arrStart = dataAlloc.allocate(resrv_size /= 2);
+    _StorageEnd = _arrStart + resrv_size - 1;
     for(int i=0;i<vec_size;++i)
         dataAlloc.construct(_arrStart + i,*(_oldarrStart + i));
     dataAlloc.deallocate(_oldarrStart,_oldresrv_size);
@@ -298,6 +303,7 @@ void vector<T,Alloc>::expand()
     T* _oldarrStart = _arrStart;
     auto _oldresrv_size = resrv_size;
     _arrStart = dataAlloc.allocate(resrv_size *= 2);
+    _StorageEnd = _arrStart + resrv_size - 1;
     for(int i=0;i<vec_size;++i)
         dataAlloc.construct(_arrStart + i,*(_oldarrStart + i));
     dataAlloc.deallocate(_oldarrStart,_oldresrv_size);
@@ -328,8 +334,8 @@ void vector<T,Alloc>::resize(size_type n,const T& val)
             {
                 dataAlloc.construct(_arrStart + i,val);
 #ifdef DEBUG_FLAG
-                std::cout<<_arrStart + i<<std::endl;
-                std::cout<<(*this)[i]<<std::endl;
+//                std::cout<<_arrStart + i<<std::endl;
+//                std::cout<<(*this)[i]<<std::endl;
 #endif
             }
 
@@ -358,6 +364,150 @@ void vector<T,Alloc>::reserve(size_type new_cap)
         resrv_size = new_cap;
     }
 }
+
+template <typename T,typename Alloc>
+typename vector<T,Alloc>::reference
+    vector<T,Alloc>::front()
+{
+    return *(_arrStart);
+}
+
+template <typename T,typename Alloc>
+typename vector<T,Alloc>::const_reference
+    vector<T,Alloc>::front() const
+{
+    return *(_arrStart);
+}
+template <typename T,typename Alloc>
+typename vector<T,Alloc>::reference
+    vector<T,Alloc>::back()
+{
+    return *(_arrEnd);
+}
+
+template <typename T,typename Alloc>
+typename vector<T,Alloc>::const_reference
+    vector<T,Alloc>::back() const
+{
+    return *(_arrEnd);
+}
+
+template <typename T,typename Alloc>
+typename vector<T,Alloc>::iterator
+vector<T,Alloc>::insert(typename vector<T,Alloc>::const_iterator it,const T& val)
+{
+    expand();
+    auto itt = _arrStart + (it - _arrStart);
+    for(auto i = end();i!=it;i--)
+        *i = *(i - 1);
+    *itt = val;
+    vec_size++;
+    _arrEnd = _arrStart + vec_size - 1;
+    return itt;
+}
+
+template <typename T,typename Alloc>
+typename vector<T,Alloc>::iterator
+vector<T,Alloc>::insert(typename vector<T,Alloc>::const_iterator it,T&& val)
+{
+    return insert(it,val);
+}
+
+template <typename T,typename Alloc>
+typename vector<T,Alloc>::iterator
+vector<T,Alloc>::insert(typename vector<T,Alloc>::const_iterator it,size_type n,const T& val)
+{
+    if(n==0) return const_cast<T*>(it);
+
+    //a little tricky
+    //if you want to understand it
+    //you must completely understand how the allocator with its memorypool works.
+    auto _oldarrStart = _arrStart;
+    if(n + vec_size > resrv_size)
+        reserve(resrv_size + n);
+    auto itt = _arrStart + (it - _oldarrStart);
+    vec_size +=n;
+    //memmove
+    for(auto i = end() + n;i!=it + n;i--)
+        *i = *(i - 1 - n);
+
+
+    for(auto tmp = itt;n--;++tmp)
+        *tmp = val;
+    _arrEnd = _arrStart + vec_size - 1;
+    return itt;
+}
+
+template <typename T,typename Alloc>
+template <typename InputIt,typename>
+typename vector<T,Alloc>::iterator
+vector<T,Alloc>::insert(typename vector<T,Alloc>::const_iterator it,InputIt first,InputIt last)
+{
+    auto n = last - first;
+    if(n==0) return const_cast<T*>(it);
+
+    auto _oldarrStart = _arrStart;
+    if(n + vec_size > resrv_size)
+        reserve(resrv_size + n);
+    auto itt = _arrStart + (it - _oldarrStart);
+    vec_size +=n;
+    //memmove
+    for(auto i = end() + n;i!=it + n;i--)
+        *i = *(i - 1 - n);
+
+
+    for(auto tmp = itt;first != last;++tmp,++first)
+        *tmp = *first;
+    _arrEnd = _arrStart + vec_size - 1;
+    return itt;
+}
+
+template <typename T,typename Alloc>
+typename vector<T,Alloc>::iterator
+vector<T,Alloc>::insert(typename vector<T,Alloc>::const_iterator it,std::initializer_list<T> lst)
+{
+    auto n = lst.size();
+    if(n==0) return const_cast<T*>(it);
+
+    auto _oldarrStart = _arrStart;
+    if(n + vec_size > resrv_size)
+        reserve(resrv_size + n);
+    auto itt = _arrStart + (it - _oldarrStart);
+    vec_size +=n;
+    //memmove
+    for(auto i = end() + n;i!=it + n;i--)
+        *i = *(i - 1 - n);
+
+    for(auto &item : lst)
+    {
+        (*itt) = item;
+        itt++;
+    }
+    _arrEnd = _arrStart + vec_size - 1;
+    return itt;
+}
+
+//template <typename T,typename Alloc>
+//typename vector<T,Alloc>::iterator
+//vector<T,Alloc>::insert(typename vector<T,Alloc>::const_iterator it,size_type n,T&& val)
+//{
+//    return insert(it,n,val);
+//}
+
+template <typename T,typename Alloc>
+void vector<T,Alloc>::push_back(const T& val)
+{
+    insert(end(),val);
+}
+
+template <typename T,typename Alloc>
+void vector<T,Alloc>::push_back(T&& val)
+{
+    insert(end(),val);
+}
+
+
+
 
 
 
