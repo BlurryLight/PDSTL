@@ -137,8 +137,118 @@ MU_TEST(test_vector_check) {
 
         vec5.push_back(5);
         mu_check(vec5.back() ==  5);
-
     }
+    //erase
+    {
+        vector<int> vec1{1,2,3,4,5};
+        vec1.erase(vec1.begin());
+        mu_assert_int_eq(2,*(vec1.begin()));
+        vec1.erase(vec1.begin(),vec1.begin() + 3);
+        mu_assert_int_eq(5,*(vec1.begin()));
+
+        vector<int> vec2{1,2,3,4,5,6};
+        for(auto it = vec2.begin();it!=vec2.end();)
+        {
+            if(*it % 2 ==0)
+            {
+                it = vec2.erase(it);
+            }
+            else {
+                ++it;
+            }
+        }
+        mu_assert_int_eq(1,vec2.at(0));
+        mu_assert_int_eq(3,vec2.at(1));
+        mu_assert_int_eq(5,vec2.at(2));
+    }
+    //swap
+    {
+        vector<int> vec1{1,2,3};
+        vector<int> vec2{4,5,6,7};
+        vec1.swap(vec2);
+        mu_assert_int_eq(4,vec1.size());
+        mu_assert_int_eq(8,vec1.capacity());
+        mu_assert_int_eq(4,vec1.front());
+        mu_assert_int_eq(7,vec1.back());
+
+        mu_assert_int_eq(3,vec2.size());
+        mu_assert_int_eq(6,vec2.capacity());
+        mu_assert_int_eq(1,vec2.front());
+        mu_assert_int_eq(3,vec2.back());
+
+        //clear
+
+        vec1.clear();
+        mu_assert_int_eq(0,vec1.size());
+        mu_assert_int_eq(8,vec1.capacity());
+    }
+    //push_back && emplace_back
+    {
+        struct base
+        {
+            std::string str1;
+            std::string str2;
+            int i1;
+            base(std::string s1,std::string s2,int val = 10):
+                str1(std::move(s1)),str2(std::move(s2)),i1(val)
+            {
+//                std::cout<<"base ctor"<<std::endl;
+            }
+        };
+
+        vector<base> vec1;
+        vec1.emplace_back("I","am",1);
+        vec1.push_back(base("You","are",2));
+
+        mu_assert_int_eq(2,vec1.size());
+        mu_assert_int_eq(4,vec1.capacity());
+        mu_check("I" == vec1.at(0).str1);
+        mu_check("You" == vec1.at(1).str1);
+
+        mu_check("am" == vec1.at(0).str2);
+        mu_check("are" == vec1.at(1).str2);
+
+        mu_check(1 == vec1.at(0).i1);
+        mu_check(2 == vec1.at(1).i1);
+    }
+    //assign && pop_back
+    {
+       vector<std::string> vec1;
+       vec1.assign(5,"We");
+        mu_assert_int_eq(5,vec1.size());
+        mu_check(vec1.front() == "We");
+        mu_check(vec1.back() == "We");
+
+       vector<std::string> vec2;
+       vec2.assign(vec1.cbegin(),vec1.cend());
+        mu_assert_int_eq(5,vec2.size());
+        mu_check(vec2.front() == "We");
+        mu_check(vec2.back() == "We");
+
+       vector<std::string> vec3;
+       vec3.assign({"we","are","young"});
+        mu_assert_int_eq(3,vec3.size());
+        mu_check(vec3.front() == "we");
+        mu_check(vec3.back() == "young");
+
+        vec3.pop_back();
+        mu_check(vec3.back() == "are");
+    }
+    //operators
+    {
+        vector<char> vec1{'a','b','c','d'};
+        vector<char> vec2{'a','b','c','d'};
+        vector<char> vec3{'c','b','c','d'};
+
+        mu_check(vec1 == vec2);
+        mu_check(vec1 <= vec2);
+        mu_check(vec1 <= vec3);
+        mu_check(vec1 < vec3);
+        mu_check(vec1 != vec3);
+        mu_check(vec3 > vec1);
+        mu_check(vec3 >= vec1);
+    }
+
 
 }
 MU_TEST_SUITE(test_vector_suite) {

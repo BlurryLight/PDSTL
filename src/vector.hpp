@@ -9,6 +9,7 @@
 #endif
 #include "allocator.h"
 #include "iterator.hpp"
+#include <cstring> //for memmove
 #include <iterator> //reverse_iterator only : will be replaced after reverse_iterator implementation
 #include <initializer_list> //std::initializer_list<T>
 #include <limits>
@@ -122,9 +123,7 @@ public:
     void push_back(T&& val);
 
     template <typename... Args>
-    void emplace_back(Args&&... args);
-    template <typename... Args>
-    iterator emplace_back(const_iterator pos,Args&&... args);
+    reference emplace_back(Args&&... args);
 
     void pop_back();
     void swap(vector& other);
@@ -497,13 +496,198 @@ vector<T,Alloc>::insert(typename vector<T,Alloc>::const_iterator it,std::initial
 template <typename T,typename Alloc>
 void vector<T,Alloc>::push_back(const T& val)
 {
-    insert(end(),val);
+    expand();
+    dataAlloc.construct(_arrStart + vec_size,val);
+    ++vec_size;
+    ++_arrEnd;
 }
 
 template <typename T,typename Alloc>
 void vector<T,Alloc>::push_back(T&& val)
 {
-    insert(end(),val);
+    expand();
+    dataAlloc.construct(_arrStart + vec_size,std::move(val));
+    ++vec_size;
+    ++_arrEnd;
+}
+
+template <typename T,typename Alloc>
+typename vector<T,Alloc>::iterator
+vector<T,Alloc>::erase(typename vector<T,Alloc>::const_iterator it)
+{
+    auto itt = const_cast<T*>(it);
+    dataAlloc.destroy(itt);
+    //elegent way
+//   memmove(itt,itt+1,(_arrEnd - it - 1) * sizeof(T));
+    for(auto tmp = itt;tmp!=end();++tmp)
+        *tmp = *(tmp+1);
+    vec_size--;
+    _arrEnd = _arrStart + vec_size - 1;
+    return itt;
+}
+template <typename T,typename Alloc>
+typename vector<T,Alloc>::iterator
+vector<T,Alloc>::erase(const_iterator first,const_iterator last)
+{
+    auto itt = const_cast<T*>(first);
+    auto n = static_cast<int>(last - first);
+    for(auto tmp = itt;tmp!=last;++tmp)
+        dataAlloc.destroy(tmp);
+
+    for(auto tmp = itt;tmp!=end();++tmp)
+        *tmp = *(tmp+n);
+//    memmove(itt,last,(vec_size - n) * sizeof (T));
+    vec_size -= n;
+    _arrEnd = _arrStart + vec_size - 1;
+    return itt;
+}
+
+template <typename T,typename Alloc>
+void vector<T,Alloc>::swap(vector& other)
+{
+    size_type tmpvec_size = vec_size;
+    size_type tmpresrv_size = resrv_size;
+    T* tmp_arrStart = _arrStart;
+    T* tmp_arrEnd = _arrEnd;
+    T* tmp_StorageEnd = _StorageEnd;
+
+    vec_size = other.vec_size;
+    resrv_size = other.resrv_size;
+    _arrStart = other._arrStart;
+    _arrEnd = other._arrEnd;
+    _StorageEnd = other._StorageEnd;
+
+   other.vec_size = tmpvec_size;
+   other.resrv_size = tmpresrv_size;
+   other._arrStart = tmp_arrStart;
+   other._arrEnd = tmp_arrEnd;
+   other._StorageEnd = tmp_StorageEnd;
+}
+
+template <typename T,typename Alloc>
+void vector<T,Alloc>::clear()
+{
+    for(int i=0;i<vec_size;i++)
+        dataAlloc.destroy(_arrStart + i);
+    vec_size = 0;
+    _arrEnd = _arrStart;
+}
+
+template <typename T,typename Alloc>
+    template <typename ... Args>
+typename vector<T,Alloc>::reference
+   vector<T,Alloc>::emplace_back(Args&&... args)
+{
+    expand();
+    dataAlloc.construct(_arrStart + vec_size,std::move(T(std::forward<Args>(args)...)));
+    ++vec_size;
+    ++_arrEnd;
+    return back();
+}
+
+
+template <typename T,typename Alloc>
+void vector<T,Alloc>::assign(size_type count,const T& val)
+{
+    if(count > resrv_size)
+        reserve(count * 2);
+
+    for(auto i = 0;i<count;++i)
+        dataAlloc.construct(_arrStart + i,val);
+    vec_size = count;
+    _arrEnd = _arrStart + vec_size - 1;
+}
+
+template <typename T,typename Alloc>
+    template <typename Inputit,typename>
+void vector<T,Alloc>::assign(Inputit first,Inputit last)
+{
+    size_type count = static_cast<size_type>(last - first);
+    if(count > resrv_size)
+        reserve(count * 2);
+
+    for(auto i = 0;i<count;++i,++first)
+        dataAlloc.construct(_arrStart + i,*first);
+    vec_size = count;
+    _arrEnd = _arrStart + vec_size - 1;
+}
+
+template <typename T,typename Alloc>
+void vector<T,Alloc>::assign(std::initializer_list<T> ilist)
+{
+    size_type count = ilist.size();
+    if(count > resrv_size)
+        reserve(count * 2);
+
+    size_type i = 0;
+    auto it = ilist.begin();
+    for(;i<count;++i)
+        dataAlloc.construct(_arrStart + i,*(it++));
+    vec_size = count;
+    _arrEnd = _arrStart + vec_size - 1;
+}
+
+template <typename T,typename Alloc>
+void vector<T,Alloc>::pop_back()
+{
+    erase(_arrEnd);
+}
+
+template <typename T,typename Alloc>
+bool vector<T,Alloc>::operator==(const vector& other) const
+{
+    if(other.vec_size != vec_size) return false;
+    auto it = cbegin();
+    auto itt = other.cbegin();
+    while(it!=cend())
+    {
+        if(*(it++) != *(itt++))
+            return false;
+    }
+    return true;
+}
+template <typename T,typename Alloc>
+bool vector<T,Alloc>::operator!=(const vector& other) const
+{
+    return !((*this) == other);
+}
+
+template <typename T,typename Alloc>
+bool vector<T,Alloc>::operator<(const vector& other) const
+{
+    auto it = cbegin();
+    auto itt = other.cbegin();
+    while(it!=cend() && itt != other.cend())
+    {
+        if(*(it++) < *(itt++))
+            return true;
+    }
+    return vec_size < other.vec_size;
+}
+
+template <typename T,typename Alloc>
+bool vector<T,Alloc>::operator>(const vector& other) const
+{
+    auto it = cbegin();
+    auto itt = other.cbegin();
+    while(it!=cend() && itt != other.cend())
+    {
+        if(*(it++) > *(itt++))
+            return true;
+    }
+    return vec_size > other.vec_size;
+}
+
+template <typename T,typename Alloc>
+bool vector<T,Alloc>::operator<=(const vector& other) const
+{
+    return ((*this) == other || (*this) < other);
+}
+
+template <typename T,typename Alloc>
+bool vector<T,Alloc>::operator>=(const vector& other) const
+{
+    return ((*this) == other || (*this) > other);
 }
 
 
