@@ -1,9 +1,15 @@
-#include "minunit.h"
+﻿#include "minunit.h"
 #include "list.hpp"
 
 
 using namespace pdstl;
 MU_TEST(test_list_check) {
+    {
+    pdstl::list<int> lst;
+    lst.push_back(1);
+    lst.push_back(2);
+    lst.push_back(3);
+    }
 
 
 }

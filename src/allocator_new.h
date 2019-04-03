@@ -1,4 +1,4 @@
-#ifndef ALLOCATOR_NEW_H
+﻿#ifndef ALLOCATOR_NEW_H
 #define ALLOCATOR_NEW_H
 //This allocator is a simple wrapper for new and delete,which could be robuster than the mempool version
 
@@ -53,6 +53,13 @@ public:
 //            throw std::bad_alloc();
             return nullptr;
         return static_cast<_T*>(::operator new(n * sizeof (_T)));
+    }
+
+    void deallocate(pointer p)
+    {
+        if( p = nullptr)
+            return;
+        ::operator delete(p);
     }
     void deallocate(pointer p,size_type /*flag*/)
     {
