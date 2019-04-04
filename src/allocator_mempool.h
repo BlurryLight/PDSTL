@@ -165,6 +165,10 @@ public:
     }
 
 
+    pointer allocate()
+    {
+       return MemoryPool<_T,_GrowSize>::allocate();
+    }
     pointer allocate(size_type n ,const void* hint = 0)
     {
         if(hint || n <= 0)
@@ -177,6 +181,10 @@ public:
             return MemoryPool<_T,_GrowSize>::allocate(n);
     }
 
+    void deallocate(pointer p)
+    {
+       MemoryPool<_T,_GrowSize>::deallocate(p,1);
+    }
     void deallocate(pointer p,size_type n) //n must equle to that allocated
     {
         if(n <= 0)
