@@ -17,8 +17,8 @@ namespace pdstl {
 
     template <typename Iter>
     using isInputIterator = typename std::enable_if<
-        std::is_convertible<typename iterator_traits<Iter>::iterator_category,
-                            input_iterator_tag
+        std::is_convertible<typename std::iterator_traits<Iter>::iterator_category,
+                            std::input_iterator_tag
                             >::value
         >::type;
 
@@ -165,10 +165,15 @@ namespace pdstl {
             dataAlloc.construct(p,ListNode<T>(val));
             return p;
         }
-        node_type* deleteNode(node_type* p)
+        void deleteNode(node_type* p)
         {
+            if(p->nNext !=nullptr)
+                p->nNext->nPrev = p->nPrev;
+            if(p->nPrev !=nullptr)
+                p->nPrev->nNext = p->nNext;
             dataAlloc.destroy(p);
             dataAlloc.deallocate(p);
+            --_size;
         }
 
         void init()
@@ -213,6 +218,7 @@ namespace pdstl {
 
         //iterator;
 
+        iterator       at(size_type rank); //out of standards
         iterator       begin() ;
         const_iterator begin() const ;
         const_iterator cbegin() const ;
@@ -230,8 +236,8 @@ namespace pdstl {
         const_reverse_iterator crend() const ;
 
         //capacity
-        bool empty() const;
-        size_type size()  const;
+        bool empty() const { return _size== 0;}
+        size_type size()  const { return _size;}
         //max_size      useless,refuse to implement
 
         //Modifiers
@@ -313,25 +319,106 @@ namespace pdstl {
         init();
     }
 
+    template <typename T,typename Alloc>
+    list<T,Alloc>::list(size_type n,const T& val)
+    :_size(0)
+    {
+        init();
+        while(n--)
+            this->push_back(val);
+    }
+
+    template <typename T,typename Alloc>
+    list<T,Alloc>::list(size_type n)
+    :_size(0)
+    {
+        init();
+        while(n--)
+            this->push_back(T());
+    }
+
+    template <typename T,typename Alloc>
+        template <typename InputIt,typename>
+    list<T,Alloc>::list(InputIt first,InputIt last)
+    {
+        init();
+        size_type n = 0;
+        for(;first != last;++first)
+        {
+            this->push_back(*first);
+            n++;
+        }
+        _size = n;
+    }
+
+    template <typename T,typename Alloc>
+    list<T,Alloc>::list(const list& other)
+        :_size(0)
+    {
+        init();
+        auto last = other.cend();
+        for(auto first = other.begin();first != last;++first)
+        {
+            this->push_back(*first);
+        }
+    }
+
+    template <typename T,typename Alloc>
+    void list<T,Alloc>::swap(list& other)
+    {
+        auto tmpSize = this->_size;
+        node_type* tmpHead = head.nNode;
+        node_type* tmpTail = tail.nNode;
+
+        this->_size = other._size;
+        head.nNode = other.head.nNode;
+        tail.nNode = other.tail.nNode;
+
+        other._size  = tmpSize;
+        other.head.nNode = tmpHead;
+        other.tail.nNode = tmpTail;
+    }
+    template <typename T,typename Alloc>
+    list<T,Alloc>::list(list&& other)
+        :_size(0)
+    {
+        init();
+        this->swap(other);
+    }
+
+    template  <typename T,typename Alloc>
+    void list<T,Alloc>::clear()
+    {
+        while(_size > 0)
+            deleteNode(head.nNode->nNext);
+    }
+
     template  <typename T,typename Alloc>
     list<T,Alloc>::~list()
     {
-        while(head.nNode && head.nNode != tail.nNode)
-        {
-            auto tmp = head.nNode->nNext;
-            deleteNode(head.nNode);
-            head.nNode = tmp;
-        }
+        clear();
+        deleteNode(head.nNode);
+        deleteNode(tail.nNode);
+
+        //head和tail是属于list的元素，他门会被自动析构
+
+//        ++head;
+//        while(head.nNode && head.nNode != tail.nNode)
+//        {
+//            auto tmp = head.nNode->nNext;
+//            deleteNode(head.nNode);
+//            head.nNode = tmp;
+//        }
     }
 
     template  <typename T,typename Alloc>
     void list<T,Alloc>::push_back(const T& val)
     {
         auto p = createNode(val);
-        p->insertAsNext(tail.nNode);
-        tail.nNode = p;
+        p->insertAsPrev(tail.nNode);
         _size++;
     }
+
     template  <typename T,typename Alloc>
     void list<T,Alloc>::push_back(T&& val)
     {
@@ -340,6 +427,51 @@ namespace pdstl {
         _size++;
     }
 
+    template  <typename T,typename Alloc>
+    typename list<T,Alloc>::iterator list<T,Alloc>::begin()
+    {
+        auto tmp = head;
+        return (++tmp);
+    }
+
+    template  <typename T,typename Alloc>
+    typename list<T,Alloc>::const_iterator list<T,Alloc>::begin() const
+    {
+        return cbegin();
+    }
+
+    template  <typename T,typename Alloc>
+    typename list<T,Alloc>::iterator list<T,Alloc>::end()
+    {
+        return tail;
+    }
+
+    template  <typename T,typename Alloc>
+    typename list<T,Alloc>::const_iterator list<T,Alloc>::cbegin() const
+    {
+        auto tmp = head;
+        ++tmp;
+        ListIterator<T,const T*,const T&> chead;
+        chead.nNode = tmp.nNode;
+        return chead;
+    }
+
+    template  <typename T,typename Alloc>
+    typename list<T,Alloc>::const_iterator list<T,Alloc>::cend() const
+    {
+        ListIterator<T,const T*,const T&> ctail;
+        ctail.nNode = tail.nNode;
+        return ctail;
+    }
+
+    template  <typename T,typename Alloc>
+    typename list<T,Alloc>::iterator list<T,Alloc>::at(size_t rank)
+    {
+        auto first = this->begin();
+        for(size_type i = 0;i < rank; ++i)
+            ++first;
+        return first;
+    }
 
 
 

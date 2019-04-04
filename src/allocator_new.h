@@ -57,13 +57,13 @@ public:
 
     void deallocate(pointer p)
     {
-        if( p = nullptr)
+        if( p == nullptr)
             return;
         ::operator delete(p);
     }
     void deallocate(pointer p,size_type /*flag*/)
     {
-        if( p = nullptr)
+        if( p == nullptr)
             return;
         ::operator delete(p);
     }
