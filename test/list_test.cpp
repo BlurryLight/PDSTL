@@ -1,11 +1,11 @@
 ﻿#include "minunit.h"
 #include "list.hpp"
-#include <list>
+#include <string>
 
 
 using namespace pdstl;
 MU_TEST(test_list_check) {
-    //push_back and default ctor
+    //push_back ,push_front and default ctor
     {
         pdstl::list<int> lst;
         lst.push_back(1);
@@ -14,6 +14,14 @@ MU_TEST(test_list_check) {
         mu_assert_int_eq(1,*lst.at(0));
         mu_assert_int_eq(2,*lst.at(1));
         mu_assert_int_eq(3,*lst.at(2));
+
+        lst.push_front(9);
+        lst.push_front(8);
+        lst.push_front(7);
+        mu_assert_int_eq(7,*lst.at(0));
+        mu_assert_int_eq(8,*lst.at(1));
+        mu_assert_int_eq(9,*lst.at(2));
+        mu_assert_int_eq(6,lst.size());
     }
 
     //iterator_ctor
@@ -81,7 +89,48 @@ MU_TEST(test_list_check) {
         for(auto tmp : characters)
             mu_check(tmp == 'a');
         mu_assert_int_eq(4,characters.size());
+    }
+   //front and back
+    {
+        list<std::string> list{"aa","bb","cc"};
+        mu_assert_string_eq("aa",list.front().c_str());
+        mu_assert_string_eq("cc",list.back().c_str());
+    }
 
+    //reverse_itrator and normal iterator
+    {
+        list<int> lst{9,8,7,6,5,4,3,2,1,0};
+        int n = 0;
+        for(auto ri = lst.rbegin();ri!=lst.rend();++ri,++n)
+            mu_assert_int_eq(n,*ri);
+        int m = 9;
+        for(auto i = lst.begin();i!=lst.end();++i,--m)
+            mu_assert_int_eq(m,*i);
+    }
+
+    //operator =
+    {
+
+        list<int> list1 = {5,5,5};
+        mu_assert_int_eq(5,*list1.at(0));
+        mu_assert_int_eq(5,*list1.at(1));
+        mu_assert_int_eq(5,*list1.at(2));
+        mu_assert_int_eq(3,list1.size());
+
+        list<int> list2 = list1;
+        mu_assert_int_eq(5,*list2.at(0));
+        mu_assert_int_eq(5,*list2.at(1));
+        mu_assert_int_eq(5,*list2.at(2));
+        mu_assert_int_eq(3,list2.size());
+
+        list<int> list3 = std::move(list1);
+        mu_assert_int_eq(5,*list3.at(0));
+        mu_assert_int_eq(5,*list3.at(1));
+        mu_assert_int_eq(5,*list3.at(2));
+        mu_assert_int_eq(3,list3.size());
+
+       //list1 was resetted
+        mu_assert_int_eq(0,list1.size());
     }
 
 

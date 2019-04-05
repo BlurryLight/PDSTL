@@ -440,6 +440,23 @@ namespace pdstl {
     }
 
     template<typename T, typename Alloc>
+    list<T,Alloc>& list<T,Alloc>::operator=(const list& other)
+    {
+        this->assign(other.begin(),other.end());
+    }
+
+    template<typename T, typename Alloc>
+    list<T,Alloc>& list<T,Alloc>::operator=(list&& other)
+    {
+        this->swap(other);
+    }
+    template<typename T, typename Alloc>
+    list<T,Alloc>& list<T,Alloc>::operator=(std::initializer_list<T> ilist)
+    {
+        this->assign(ilist.begin(),ilist.end());
+    }
+
+    template<typename T, typename Alloc>
     typename list<T,Alloc>::iterator
     list<T,Alloc>::erase(const_iterator pos)
     {
@@ -522,6 +539,35 @@ namespace pdstl {
             }
     }
 
+    template<typename T, typename Alloc>
+    typename list<T,Alloc>::reference list<T,Alloc>::front()
+    {
+       return *begin();
+    }
+
+    template<typename T, typename Alloc>
+    typename list<T,Alloc>::const_reference list<T,Alloc>::front() const
+    {
+       return *begin();
+    }
+
+    template<typename T, typename Alloc>
+    typename list<T,Alloc>::reference list<T,Alloc>::back()
+    {
+        auto tmp = end();
+        --tmp;
+        return *tmp;
+    }
+
+    template<typename T, typename Alloc>
+    typename list<T,Alloc>::const_reference list<T,Alloc>::back() const
+    {
+        auto tmp = end();
+        --tmp;
+        return *tmp;
+    }
+
+
 
     template  <typename T,typename Alloc>
     void list<T,Alloc>::push_back(const T& val)
@@ -538,6 +584,23 @@ namespace pdstl {
         p->insertAsPrev(tail.nNode);
         _size++;
     }
+
+    template  <typename T,typename Alloc>
+    void list<T,Alloc>::push_front(const T& val)
+    {
+        auto p = createNode(val);
+        p->insertAsNext(head.nNode);
+        _size++;
+    }
+
+    template  <typename T,typename Alloc>
+    void list<T,Alloc>::push_front(T&& val)
+    {
+        auto p = createNode(std::move(val));
+        p->insertAsNext(head.nNode);
+        _size++;
+    }
+
 
     template  <typename T,typename Alloc>
     typename list<T,Alloc>::iterator list<T,Alloc>::begin()
@@ -575,6 +638,44 @@ namespace pdstl {
         ctail.nNode = tail.nNode;
         return ctail;
     }
+
+    template  <typename T,typename Alloc>
+    typename list<T,Alloc>::reverse_iterator list<T,Alloc>::rbegin()
+    {
+        return reverse_iterator(end());
+    }
+
+    template  <typename T,typename Alloc>
+    typename list<T,Alloc>::const_reverse_iterator list<T,Alloc>::rbegin() const
+    {
+        return const_reverse_iterator(end());
+    }
+
+    template  <typename T,typename Alloc>
+    typename list<T,Alloc>::const_reverse_iterator list<T,Alloc>::crbegin() const
+    {
+        return const_reverse_iterator(end());
+    }
+
+    template  <typename T,typename Alloc>
+    typename list<T,Alloc>::reverse_iterator list<T,Alloc>::rend()
+    {
+        return reverse_iterator(begin());
+    }
+
+    template  <typename T,typename Alloc>
+    typename list<T,Alloc>::const_reverse_iterator list<T,Alloc>::rend() const
+    {
+        return const_reverse_iterator(begin());
+    }
+
+    template  <typename T,typename Alloc>
+    typename list<T,Alloc>::const_reverse_iterator list<T,Alloc>::crend() const
+    {
+        return const_reverse_iterator(begin());
+    }
+
+
 
     template  <typename T,typename Alloc>
     typename list<T,Alloc>::iterator list<T,Alloc>::at(size_t rank)
