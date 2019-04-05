@@ -17,10 +17,8 @@ namespace pdstl {
 
     template <typename Iter>
     using isInputIterator = typename std::enable_if<
-        std::is_convertible<typename std::iterator_traits<Iter>::iterator_category,
-                            std::input_iterator_tag
-                            >::value
-        >::type;
+        std::is_convertible<typename pdstl::iterator_traits<Iter>::iterator_category,
+                            pdstl::input_iterator_tag>::value>;
 
 /*
  * inspired by EASTL
@@ -89,6 +87,16 @@ namespace pdstl {
         typedef Reference           reference;
         typedef bidirectional_iterator_tag iterator_category;
 
+        // a good blog https://izualzhy.cn/SFINAE-and-enable_if#1-sfinae%E6%98%AF%E4%BB%80%E4%B9%88
+        typedef ListIterator<T,Pointer,Reference>  iterator; //traits_helper required
+
+
+        //user-defined implicit conversion
+        operator ListIterator<T,const T*,const T&>()
+        {
+            return ListIterator<T,const T*,const T&>(this->nNode);
+        }
+
     public:
         node_type* nNode;
     public:
@@ -123,6 +131,19 @@ namespace pdstl {
         reference operator*() const { return nNode->nValue;}
         pointer operator->() const { return &(nNode->nValue);}
     };
+
+    //Enable const_iterator to compare with non-const version
+    template <typename T,typename PointerA,typename ReferenceA,typename PointerB,typename ReferenceB>
+    bool operator==(const ListIterator<T,PointerA,ReferenceA>& a,const ListIterator<T,PointerB,ReferenceB>& b)
+    {
+        return a.nNode == b.nNode;
+    }
+
+    template <typename T,typename PointerA,typename ReferenceA,typename PointerB,typename ReferenceB>
+    bool operator!=(const ListIterator<T,PointerA,ReferenceA>& a,const ListIterator<T,PointerB,ReferenceB>& b)
+    {
+        return a.nNode != b.nNode;
+    }
 
     template <typename T,typename Pointer,typename Reference>
     bool operator==(const ListIterator<T,Pointer,Reference>& a,const ListIterator<T,Pointer,Reference>& b)
@@ -178,6 +199,7 @@ namespace pdstl {
 
         void init()
         {
+            _size = 0;
             head.nNode = createNode();
             tail.nNode = createNode();
             head.nNode->nNext = tail.nNode;
@@ -314,14 +336,12 @@ namespace pdstl {
 
     template  <typename T,typename Alloc>
     list<T,Alloc>::list() noexcept
-        : _size(0)
     {
         init();
     }
 
     template <typename T,typename Alloc>
     list<T,Alloc>::list(size_type n,const T& val)
-    :_size(0)
     {
         init();
         while(n--)
@@ -330,7 +350,6 @@ namespace pdstl {
 
     template <typename T,typename Alloc>
     list<T,Alloc>::list(size_type n)
-    :_size(0)
     {
         init();
         while(n--)
@@ -353,7 +372,6 @@ namespace pdstl {
 
     template <typename T,typename Alloc>
     list<T,Alloc>::list(const list& other)
-        :_size(0)
     {
         init();
         auto last = other.cend();
@@ -380,10 +398,20 @@ namespace pdstl {
     }
     template <typename T,typename Alloc>
     list<T,Alloc>::list(list&& other)
-        :_size(0)
     {
         init();
         this->swap(other);
+    }
+
+    template <typename T,typename Alloc>
+    list<T,Alloc>::list(std::initializer_list<T> ilist)
+    {
+        init();
+        auto last = ilist.end();
+        for(auto first = ilist.begin();first != last;++first)
+        {
+            this->push_back(*first);
+        }
     }
 
     template  <typename T,typename Alloc>
@@ -408,8 +436,92 @@ namespace pdstl {
 //            auto tmp = head.nNode->nNext;
 //            deleteNode(head.nNode);
 //            head.nNode = tmp;
-//        }
+        //        }
     }
+
+    template<typename T, typename Alloc>
+    typename list<T,Alloc>::iterator
+    list<T,Alloc>::erase(const_iterator pos)
+    {
+        if(pos == end()) return iterator(nullptr); //undefined behaviour
+//        pos.nNode->remove();  // safer to use private func of list : deleteNode
+        node_type* tmp = pos.nNode->nNext;
+        deleteNode(pos.nNode);
+        return iterator(tmp);
+    }
+
+    template<typename T, typename Alloc>
+    typename list<T,Alloc>::iterator
+    list<T,Alloc>::erase(const_iterator first,const_iterator last)
+    {
+        while(first != last)
+        {
+            node_type* tmp = first.nNode;
+            ++first;
+            deleteNode(tmp);
+        }
+        return iterator(last.nNode);
+    }
+
+    template<typename T, typename Alloc>
+    void list<T,Alloc>::assign(size_type n, const T &value)
+    {
+        auto i = begin();
+        auto e = end();
+        for (; i!= e && n > 0; --n,++i)
+        {
+            *i = value;
+        }
+        while(n--)
+        {
+            push_back(value);
+        }
+        erase(i,e);
+    }
+
+    template<typename T, typename Alloc>
+        template <typename InputIt,typename>
+    void list<T,Alloc>::assign(InputIt first, InputIt last)
+    {
+        auto i = begin();
+        auto e = end();
+
+        for(;i!=e && first!=last;++i,++first)
+            *i = *first;
+       //调整到合适大小
+        if(first == last)
+            erase(i,e);
+
+        if(i == e)
+            while(first!=last)
+            {
+                push_back(*first);
+                ++first;
+            }
+    }
+
+    template<typename T, typename Alloc>
+    void list<T,Alloc>::assign(std::initializer_list<T> ilist)
+    {
+        auto i = begin();
+        auto e = end();
+        auto first = ilist.begin();
+        auto last = ilist.end();
+
+        for(;i!=e && first!=last;++i,++first)
+            *i = *first;
+       //调整到合适大小
+        if(first == last)
+            erase(i,e);
+
+        if(i == e)
+            while(first!=last)
+            {
+                push_back(*first);
+                ++first;
+            }
+    }
+
 
     template  <typename T,typename Alloc>
     void list<T,Alloc>::push_back(const T& val)
@@ -472,6 +584,7 @@ namespace pdstl {
             ++first;
         return first;
     }
+
 
 
 

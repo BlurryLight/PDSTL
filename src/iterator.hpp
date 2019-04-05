@@ -1,10 +1,19 @@
-#ifndef ITERATOR_HPP
+﻿#ifndef ITERATOR_HPP
 #define ITERATOR_HPP
 #include <cstddef> //for std::nullptr_t
 namespace pdstl {
 //by SGI_PORT STL
 
+struct false_type
+{
+    const static bool bool_flag = false;
+};
+struct true_type
+{
+    const static  bool bool_flag = true;
+};
 // 5 basic iterators
+
 struct input_iterator_tag{};
 struct output_iterator_tag{};
 struct forward_iterator_tag : public input_iterator_tag{};
@@ -48,48 +57,38 @@ struct random_access_iterator : public iterator<random_access_iterator_tag,T>{};
 template <typename T>
 struct output_iterator : public iterator<output_iterator_tag,void,void,void,void>{};
 
-//magic begins
-//partial specialization
-template <typename iteCat>
-struct CategoryMapping
+
+// traits helper
+
+template <typename U>
+struct iterator_help
 {
-    typedef iteCat Tag;
+    typedef void iterator;
 };
-template<>
-struct CategoryMapping<input_iterator_tag>
+
+template <typename T,typename = void>
+struct has_typedef_iterator : false_type{};
+
+template <typename T>
+struct has_typedef_iterator<T,typename iterator_help<typename T::iterator>::iterator > : true_type{};
+
+template <class Iter,bool>
+struct iterator_traits_helper {};
+
+template <class Iter>
+struct iterator_traits_helper<Iter,true>
 {
-    typedef input_iterator_tag Tag;
-};
-template<>
-struct CategoryMapping<output_iterator_tag>
-{
-    typedef output_iterator_tag Tag;
-};
-template<>
-struct CategoryMapping<forward_iterator_tag>
-{
-    typedef forward_iterator_tag Tag;
-};
-template<>
-struct CategoryMapping<bidirectional_iterator_tag>
-{
-    typedef bidirectional_iterator_tag Tag;
-};
-template<>
-struct CategoryMapping<random_access_iterator_tag>
-{
-    typedef random_access_iterator_tag Tag;
-};
-//embeded mapping iterator_traits
-template <typename Iter>
-struct iterator_traits
-{
-    typedef typename Iter::iterator_catogory iterator_category;
-//    typedef typename CategoryMapping<originTag>::Tag iterator_category;
+    typedef typename Iter::iterator_category iterator_category;
     typedef typename Iter::value_type value_type;
     typedef typename Iter::difference_type difference_type;
     typedef typename Iter::pointer pointer;
     typedef typename Iter::reference reference;
+};
+
+
+template <typename Iter>
+struct iterator_traits : public iterator_traits_helper<Iter,has_typedef_iterator<Iter>::bool_flag>
+{
 };
 
 //partial specialization for pointers
