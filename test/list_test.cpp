@@ -132,6 +132,70 @@ MU_TEST(test_list_check) {
        //list1 was resetted
         mu_assert_int_eq(0,list1.size());
     }
+    //pop_back and pop_front
+    {
+        list<int> list1 = {1,2,3};
+        mu_assert_int_eq(3,list1.size());
+        list1.pop_front();
+        mu_assert_int_eq(2,list1.size());
+        mu_assert_int_eq(2,list1.front());
+        list1.pop_back();
+        mu_assert_int_eq(1,list1.size());
+        mu_assert_int_eq(2,list1.back());
+
+        //check iterators being still valid
+        list1.insert(list1.cbegin(),1);
+        list1.insert(list1.cend(),3);
+        mu_assert_int_eq(3,list1.size());
+        mu_assert_int_eq(1,*list1.at(0));
+        mu_assert_int_eq(2,*list1.at(1));
+        mu_assert_int_eq(3,*list1.at(2));
+    }
+
+    //insert
+    {
+        list<int> list1;
+        //T&&
+        list1.insert(list1.cbegin(),1);
+        mu_assert_int_eq(1,*list1.at(0));
+        mu_assert_int_eq(1,list1.size());
+
+        //const T&
+        int a = 2;
+        list1.insert(list1.cbegin(),a);
+        mu_assert_int_eq(2,*list1.at(0));
+        mu_assert_int_eq(2,list1.size());
+
+        //size_type n
+        list1.insert(list1.cbegin(),3,3);
+        mu_assert_int_eq(3,*list1.at(0));
+        mu_assert_int_eq(3,*list1.at(1));
+        mu_assert_int_eq(3,*list1.at(2));
+        mu_assert_int_eq(2,*list1.at(3));
+        mu_assert_int_eq(1,*list1.at(4)); //{head,3,3,3,2,1,tail}
+        mu_assert_int_eq(5,list1.size());
+
+        list<int> list2;
+
+        auto it1 = list1.begin();
+        auto it2 = list1.end();
+        //std::advance cannot work with pdstl::iterator
+
+        ++it1;
+        --it2;
+        list2.insert(list2.end(),it1,it2); //{3,3,2}
+        mu_assert_int_eq(3,list2.size());
+
+        list2.insert(list2.cend(),{1,2,3}); //{3,3,2,1,2,3};
+        mu_assert_int_eq(6,list2.size());
+
+        mu_assert_int_eq(3,*list2.at(0));
+        mu_assert_int_eq(3,*list2.at(1));
+        mu_assert_int_eq(2,*list2.at(2));
+        mu_assert_int_eq(1,*list2.at(3));
+        mu_assert_int_eq(2,*list2.at(4));
+        mu_assert_int_eq(3,*list2.at(5));
+    }
 
 
 }

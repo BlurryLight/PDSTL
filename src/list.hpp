@@ -396,6 +396,20 @@ namespace pdstl {
         other.head.nNode = tmpHead;
         other.tail.nNode = tmpTail;
     }
+
+    template<typename T, typename Alloc>
+    void list<T,Alloc>::pop_front()
+    {
+        auto tmp = head.nNode->nNext;
+        deleteNode(tmp);
+    }
+
+    template<typename T, typename Alloc>
+    void list<T,Alloc>::pop_back()
+    {
+        auto tmp = tail.nNode->nPrev;
+        deleteNode(tmp);
+    }
     template <typename T,typename Alloc>
     list<T,Alloc>::list(list&& other)
     {
@@ -466,6 +480,67 @@ namespace pdstl {
         deleteNode(pos.nNode);
         return iterator(tmp);
     }
+
+    template<typename T, typename Alloc>
+    typename list<T,Alloc>::iterator list<T,Alloc>::insert(const_iterator pos, const T &value)
+    {
+       auto p = createNode(value);
+       p->insertAsPrev(pos.nNode);
+       _size++;
+       return iterator(p);
+    }
+
+    template<typename T, typename Alloc>
+    typename list<T,Alloc>::iterator list<T,Alloc>::insert(const_iterator pos, T&& value)
+    {
+       auto p = createNode(std::move(value));
+       p->insertAsPrev(pos.nNode);
+       _size++;
+       return iterator(p);
+    }
+
+    template<typename T, typename Alloc>
+    typename list<T,Alloc>::iterator list<T,Alloc>::insert(const_iterator pos,size_type n,const T& value)
+    {
+        while(n--)
+        {
+           auto p = createNode(value);
+           p->insertAsPrev(pos.nNode);
+           _size++;
+        }
+       return iterator((--pos).nNode);
+    }
+
+    template <typename T,typename Alloc>
+        template<class InputIt, typename >
+    typename list<T,Alloc>::iterator list<T,Alloc>::insert(const_iterator pos, InputIt first, InputIt last)
+    {
+
+        for(;first!=last;++first)
+        {
+           auto p = createNode(*first);
+           p->insertAsPrev(pos.nNode);
+           ++_size;
+        }
+       return iterator((--pos).nNode);
+    }
+
+    template <typename T,typename Alloc>
+    typename list<T,Alloc>::iterator list<T,Alloc>::insert(const_iterator pos, std::initializer_list<T> ilist)
+    {
+        auto first = ilist.begin();
+        auto last = ilist.end();
+        auto n = static_cast<size_type>(last - first);
+        while(n--)
+        {
+           auto p = createNode(*first);
+           p->insertAsPrev(pos.nNode);
+           ++_size;
+           ++first;
+        }
+       return iterator((--pos).nNode);
+    }
+
 
     template<typename T, typename Alloc>
     typename list<T,Alloc>::iterator
@@ -685,6 +760,7 @@ namespace pdstl {
             ++first;
         return first;
     }
+
 
 
 
