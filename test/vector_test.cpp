@@ -1,4 +1,4 @@
-#include "minunit.h"
+﻿#include "minunit.h"
 #include "vector.hpp"
 #include <allocator.h>
 #include <vector>
@@ -132,10 +132,12 @@ MU_TEST(test_vector_check) {
 
        vector<int> vec5;
        vec5.insert(vec5.begin(),{1,1,1});
-        for(int i=0;i<2;++i)
-            mu_check(vec4.at(i) ==  1);
+        for(int i=0;i<vec5.size();++i)
+            mu_check(vec5.at(i) ==  1);
 
         vec5.push_back(5);
+        auto p = vec5.data();
+        mu_check(*p ==  1);
         mu_check(vec5.back() ==  5);
     }
     //erase

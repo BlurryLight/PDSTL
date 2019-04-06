@@ -1,4 +1,4 @@
-#ifndef VECTOR_H
+﻿#ifndef VECTOR_H
 #define VECTOR_H
 
 #define DEBUG_FLAG
@@ -105,8 +105,15 @@ public:
     reference back();
     const_reference back() const;
 
-    pointer data();//return the underlying array
-    const_pointer data() const;
+    pointer data()
+    {
+       return _arrStart;
+    }//return the underlying array
+    const_pointer data() const
+    {
+        return _arrStart;
+    }
+
 
     //capacity
     bool empty() const { return vec_size == 0;}
@@ -291,6 +298,7 @@ void vector<T,Alloc>::shrink()
     auto _oldresrv_size = resrv_size;
     _arrStart = dataAlloc.allocate(resrv_size /= 2);
     _StorageEnd = _arrStart + resrv_size - 1;
+    _arrEnd = _arrStart + vec_size - 1;
     for(int i=0;i<vec_size;++i)
         dataAlloc.construct(_arrStart + i,*(_oldarrStart + i));
     dataAlloc.deallocate(_oldarrStart,_oldresrv_size);
@@ -298,11 +306,12 @@ void vector<T,Alloc>::shrink()
 template <typename T,typename Alloc>
 void vector<T,Alloc>::expand()
 {
-    if( vec_size < resrv_size) return;
+    if( vec_size  < resrv_size) return;
     T* _oldarrStart = _arrStart;
     auto _oldresrv_size = resrv_size;
     _arrStart = dataAlloc.allocate(resrv_size *= 2);
     _StorageEnd = _arrStart + resrv_size - 1;
+    _arrEnd = _arrStart + vec_size - 1;
     for(int i=0;i<vec_size;++i)
         dataAlloc.construct(_arrStart + i,*(_oldarrStart + i));
     dataAlloc.deallocate(_oldarrStart,_oldresrv_size);
@@ -357,6 +366,8 @@ void vector<T,Alloc>::reserve(size_type new_cap)
         T* _oldarrStart = _arrStart;
         auto _oldresrv_size = resrv_size;
         _arrStart = dataAlloc.allocate(new_cap);
+        _arrEnd = _arrStart + vec_size - 1;
+        _StorageEnd = _arrStart + new_cap - 1;
         for(int i=0;i<vec_size;++i)
             dataAlloc.construct(_arrStart + i,*(_oldarrStart + i));
         dataAlloc.deallocate(_oldarrStart,_oldresrv_size);
@@ -427,8 +438,9 @@ vector<T,Alloc>::insert(typename vector<T,Alloc>::const_iterator it,size_type n,
     auto itt = _arrStart + (it - _oldarrStart);
     vec_size +=n;
     //memmove
-    for(auto i = end() + n;i!=it + n;i--)
+    for(auto i = end() + n;i!=itt + n;i--)
         *i = *(i - 1 - n);
+//    memmove(itt + n,itt,(_arrEnd - itt) * sizeof(T));
 
 
     for(auto tmp = itt;n--;++tmp)
@@ -451,7 +463,7 @@ vector<T,Alloc>::insert(typename vector<T,Alloc>::const_iterator it,InputIt firs
     auto itt = _arrStart + (it - _oldarrStart);
     vec_size +=n;
     //memmove
-    for(auto i = end() + n;i!=it + n;i--)
+    for(auto i = end() + n;i!=itt + n;i--)
         *i = *(i - 1 - n);
 
 
@@ -474,7 +486,7 @@ vector<T,Alloc>::insert(typename vector<T,Alloc>::const_iterator it,std::initial
     auto itt = _arrStart + (it - _oldarrStart);
     vec_size +=n;
     //memmove
-    for(auto i = end() + n;i!=it + n;i--)
+    for(auto i = end() + n;i!=itt + n;i--)
         *i = *(i - 1 - n);
 
     for(auto &item : lst)
@@ -518,9 +530,9 @@ vector<T,Alloc>::erase(typename vector<T,Alloc>::const_iterator it)
     auto itt = const_cast<T*>(it);
     dataAlloc.destroy(itt);
     //elegent way
-//   memmove(itt,itt+1,(_arrEnd - it - 1) * sizeof(T));
-    for(auto tmp = itt;tmp!=end();++tmp)
-        *tmp = *(tmp+1);
+   memmove(itt,itt+1,(_arrEnd - it) * sizeof(T));
+//    for(auto tmp = itt;tmp!=end();++tmp)
+//        *tmp = *(tmp+1);
     vec_size--;
     _arrEnd = _arrStart + vec_size - 1;
     return itt;
@@ -534,9 +546,9 @@ vector<T,Alloc>::erase(const_iterator first,const_iterator last)
     for(auto tmp = itt;tmp!=last;++tmp)
         dataAlloc.destroy(tmp);
 
-    for(auto tmp = itt;tmp!=end();++tmp)
-        *tmp = *(tmp+n);
-//    memmove(itt,last,(vec_size - n) * sizeof (T));
+//    for(auto tmp = itt;tmp!=end();++tmp)
+//        *tmp = *(tmp+n);
+    memmove(itt,last,(vec_size - n) * sizeof (T));
     vec_size -= n;
     _arrEnd = _arrStart + vec_size - 1;
     return itt;
