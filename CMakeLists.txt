@@ -4,6 +4,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CXX_STANDARD_REQUIRED 11)
 project(PDSTL)
 set(PROJECT_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
+OPTION(USE_ALLOCATOR_MEMPOOL "Build the project with mempool version Allocator" OFF)
+
+IF(USE_ALLOCATOR_MEMPOOL)
+add_definitions("-DALLOCATOR_MEMPOOL")
+endif(USE_ALLOCATOR_MEMPOOL)
 
 add_subdirectory(test)
 
