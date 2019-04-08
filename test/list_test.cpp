@@ -1,6 +1,7 @@
 ﻿#include "minunit.h"
 #include "list.hpp"
 #include <string>
+#include <iostream>
 
 
 using namespace pdstl;
@@ -196,6 +197,51 @@ MU_TEST(test_list_check) {
         mu_assert_int_eq(2,*list2.at(4));
         mu_assert_int_eq(3,*list2.at(5));
     }
+    //resize
+    {
+        list<int> list1;
+        list1.resize(2,3);
+        mu_assert_int_eq(2,list1.size());
+        mu_assert_int_eq(3,*list1.at(0));
+        mu_assert_int_eq(3,*list1.at(1));
+
+        list1.resize(3);
+        mu_assert_int_eq(3,list1.size());
+        mu_assert_int_eq(0,*list1.at(2));
+
+        list1.resize(2);
+        mu_assert_int_eq(2,list1.size());
+        mu_assert_int_eq(3,*list1.at(0));
+        mu_assert_int_eq(3,*list1.at(1));
+    }
+
+    //sort
+    {
+        //insertion_sort
+        list<int> list1{9,8,7};
+        list1.insertion_sort(std::less<int>());
+
+        int m = 7; //7,8,9
+        for(auto i : list1)
+            mu_assert_int_eq(m++,i);
+
+        list<int> list2{2,3,4};
+        list2.insertion_sort(std::greater<int>());
+
+        mu_assert_int_eq(4,*list2.at(0));
+        mu_assert_int_eq(3,*list2.at(1));
+        mu_assert_int_eq(2,*list2.at(2));
+    }
+    //uniqify
+    {
+        list<int> list1{1,1,2,2,3,3};
+        list1.unique();
+        mu_assert_int_eq(3,list1.size());
+        mu_assert_int_eq(1,*list1.at(0));
+        mu_assert_int_eq(2,*list1.at(1));
+        mu_assert_int_eq(3,*list1.at(2));
+    }
+
 
 
 }

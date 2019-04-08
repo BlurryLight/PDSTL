@@ -5,6 +5,7 @@
 #include <initializer_list>
 #include <iterator> //std::reverse_iterator only
 #include "allocator.h"
+#include <functional> //functors
 
 /*
  * This list is implemented by a doubley-linked list,
@@ -46,14 +47,16 @@ namespace pdstl {
         inline void insertAsPrev(ListNode* pNext) //inserts nodeself before a node in an existed list
         {
             this->nPrev = pNext->nPrev;
-            pNext->nPrev->nNext = this;
+            if(pNext->nPrev != nullptr)
+                pNext->nPrev->nNext = this;
             pNext->nPrev = this;
             this->nNext = pNext;
         }
         inline void insertAsNext(ListNode* pPrev) //inserts nodeself after a node in an existed list
         {
             this->nNext = pPrev->nNext;
-            pPrev->nNext->nPrev = this;
+            if(pPrev->nNext != nullptr)
+                pPrev->nNext->nPrev = this;
             pPrev->nNext = this;
             this->nPrev = pPrev;
         }
@@ -205,6 +208,57 @@ namespace pdstl {
             head.nNode->nNext = tail.nNode;
             tail.nNode->nPrev = head.nNode;
         }
+
+//    protected:
+    public: // for test only
+        //sorting algorithms practice
+        //warning : All iterators will be invalid.
+
+
+
+        /* In place insertion  Time complexity : O(n^2) / Space complexity : O(1)*/
+        template <typename Compare>
+            void insertion_sort(Compare comp)
+            {
+
+                /*
+                 * 新建一个dummy节点，cur遍历原链表
+                 */
+               auto dummy = createNode();
+               auto head_node = head.nNode;
+               auto tail_node = tail.nNode;
+               ListNode<T>* cur = head_node->nNext;
+               ListNode<T>* pre = dummy;
+               while(cur  != tail_node)
+               {
+                   while(pre->nNext !=nullptr && comp(pre->nNext->nValue,cur->nValue))
+                   {
+                       pre = pre->nNext;
+                   }
+                   auto cur_next = cur->nNext;
+                   cur->insertAsNext(pre);
+                   pre = dummy;
+                   cur = cur_next;
+               }
+
+               //manually attach the tail_node to the sorted list
+               while(pre->nNext != nullptr)
+                   pre = pre->nNext;
+               cur->insertAsNext(pre);
+               pre = dummy;
+               head.nNode = pre;
+               deleteNode(head_node);
+            }
+
+
+        template <typename Compare>
+            void selection_sort(Compare comp);
+
+        template <typename Compare>
+            void quick_sort(Compare comp);
+
+        template <typename Compare>
+            void merge_sort(Compare comp);
 
     public:
         //Member functions
@@ -434,6 +488,7 @@ namespace pdstl {
         while(_size > 0)
             deleteNode(head.nNode->nNext);
     }
+
 
     template  <typename T,typename Alloc>
     list<T,Alloc>::~list()
@@ -761,6 +816,51 @@ namespace pdstl {
         return first;
     }
 
+    template  <typename T, typename Alloc>
+    void list<T,Alloc>::resize(size_type count)
+    {
+        resize(count,T());
+    }
+
+
+    template<typename T, typename Alloc>
+    void list<T,Alloc>::resize(size_type count,const T& value)
+    {
+        if(count <= _size)
+        {
+            auto it = begin();
+            while(count--)
+                ++it;
+            erase(it,end());
+        }
+        else {
+            auto n = count - _size;
+            insert(end(),n,value);
+        }
+    }
+
+    template <typename T,typename Alloc>
+    void list<T,Alloc>::merge(list& other)
+    {
+
+    }
+
+    template<typename T, typename Alloc>
+    void list<T,Alloc>::unique()
+    {
+        auto p = head.nNode;
+        auto q = head.nNode->nNext;
+        for (;q != tail.nNode;p = q,q = q->nNext)
+        {
+            if(p->nValue == q->nValue)
+               {
+                deleteNode(q);
+                q = p;
+            }
+        }
+
+
+    }
 
 
 
