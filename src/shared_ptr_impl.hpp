@@ -1,9 +1,10 @@
 #ifndef SHARED_PTR_IMPL_H
 #define SHARED_PTR_IMPL_H
 
-#include <algorithm> //std::swap
 #include "allocator.h"
-#include "functional"//for std::function
+#include "utility.hpp"
+#include <functional>
+
 
 
 #define DEBUG_FLAG
@@ -38,6 +39,8 @@ public :
 //            delete res_ptr;
             _deleter(res_ptr);
             delete count;
+            res_ptr = nullptr;
+            count = nullptr;
         }
     }
 
@@ -91,8 +94,14 @@ private:
     template <class Y> friend class weak_ptr;
     void release()
     {
+        if(base_ptr == nullptr) return;
         if(base_ptr->decr() == 0)
+           {
             base_ptr->~shared_ptr_base<T>();
+            delete base_ptr;
+            base_ptr = nullptr;
+            }
+
     }
 public:
     //ugly implementation but useful
@@ -273,23 +282,32 @@ public:
     }
     void swap(weak_ptr& ptr)
     {
-        std::swap(base_ptr,ptr.base_ptr);
+        auto tmpptr = ptr.base_ptr;
+        ptr.base_ptr = base_ptr;
+        base_ptr = ptr.base_ptr;
     }
     weak_ptr& operator=(const weak_ptr& ptr)
     {
+//        this->base_ptr = ptr.base_ptr;
+        //swap写法是cppreference要求的,上面一行是它的实际作用
         weak_ptr(ptr).swap(*this);
+        return *this;
     }
     weak_ptr& operator=(const shared_ptr<T>& ptr)
     {
+//        this->base_ptr = ptr.base_ptr;
         weak_ptr(ptr).swap(*this);
+        return *this;
     }
     weak_ptr& operator=(weak_ptr&& ptr)
     {
-        weak_ptr(std::move(ptr)).swap(*this);
+//        this->base_ptr = ptr.base_ptr;
+        weak_ptr(pdstl::move(ptr)).swap(*this);
+        return *this;
     }
     int use_count() const
     {
-        if(!base_ptr)
+        if(base_ptr == nullptr || base_ptr->res_ptr == nullptr)
             return 0;
         return base_ptr->use_count();
     }
@@ -297,6 +315,7 @@ public:
     {
         if(this->use_count() == 0)
             return true;
+        return false;
     }
     shared_ptr<T> lock() const
     {
