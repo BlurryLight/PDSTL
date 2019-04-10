@@ -231,6 +231,21 @@ MU_TEST(test_list_check) {
         mu_assert_int_eq(4,*list2.at(0));
         mu_assert_int_eq(3,*list2.at(1));
         mu_assert_int_eq(2,*list2.at(2));
+
+        //selection sort
+        list<int> list3{9,8,7};
+        list3.selection_sort(std::less<int>());
+
+        mu_assert_int_eq(7,*list3.at(0));
+        mu_assert_int_eq(8,*list3.at(1));
+        mu_assert_int_eq(9,*list3.at(2));
+
+        list<int> list4{2,3,4};
+        list4.selection_sort(std::greater<int>());
+
+        mu_assert_int_eq(4,*list4.at(0));
+        mu_assert_int_eq(3,*list4.at(1));
+        mu_assert_int_eq(2,*list4.at(2));
     }
     //uniqify
     {
@@ -240,6 +255,30 @@ MU_TEST(test_list_check) {
         mu_assert_int_eq(1,*list1.at(0));
         mu_assert_int_eq(2,*list1.at(1));
         mu_assert_int_eq(3,*list1.at(2));
+    }
+    //list_node inline func
+    {
+
+        list<int> list1{1,2};
+        mu_assert_int_eq(1,*list1.at(0));
+        mu_assert_int_eq(2,*list1.at(1));
+
+        auto it1 = list1.begin();
+        auto it2 = ++list1.begin();
+        it1.nNode->swap(it2.nNode);
+
+        mu_assert_int_eq(2,*list1.at(0));
+        mu_assert_int_eq(1,*list1.at(1));
+
+        list<int> list2{3,2,1};
+        auto it3 = list2.begin();
+        auto it4 = --list2.end();
+        it3.nNode->swap(it4.nNode);
+        mu_assert_int_eq(1,*list2.at(0));
+        mu_assert_int_eq(2,*list2.at(1));
+        mu_assert_int_eq(3,*list2.at(2));
+
+
     }
 
 

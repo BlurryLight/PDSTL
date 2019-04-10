@@ -39,8 +39,10 @@ namespace pdstl {
 
         inline void remove() //remove nodeself from its list
         {
-            this->nPrev->nNext = this->nNext;
-            this->nNext->nPrev = this->nPrev;
+            if(this->nPrev != nullptr)
+                this->nPrev->nNext = this->nNext;
+            if(this->nNext != nullptr)
+                this->nNext->nPrev = this->nPrev;
             this->nPrev = nullptr;
             this->nNext = nullptr;
         }
@@ -59,6 +61,25 @@ namespace pdstl {
                 pPrev->nNext->nPrev = this;
             pPrev->nNext = this;
             this->nPrev = pPrev;
+        }
+
+        inline void swap(ListNode* other)
+        {
+            auto tmp_this_nPrev = this->nPrev;
+            auto tmp_this_nNext = this->nNext;
+
+            auto tmp_other_nPrev = other->nPrev;
+            auto tmp_other_nNext = other->nNext;
+
+            this->remove();
+            other->remove(); //remove nodes from list
+
+            if(tmp_this_nPrev!=nullptr)
+                other->insertAsNext(tmp_this_nPrev);
+
+            if(tmp_other_nPrev != nullptr)
+                this->insertAsPrev(tmp_other_nNext);
+
         }
         ListNode() : nValue(T())
         {
@@ -252,7 +273,37 @@ namespace pdstl {
 
 
         template <typename Compare>
-            void selection_sort(Compare comp);
+            void selection_sort(Compare comp)
+            {
+                auto head_node = head.nNode;
+                auto tail_node = tail.nNode;
+                ListNode<T>* cur = head_node->nNext;
+                ListNode<T>* cur_next;
+                ListNode<T>* foo = cur->nNext;
+                ListNode<T>* candidate = head_node->nNext;
+                while(cur != tail_node)
+                {
+                    candidate = cur;
+                    cur_next = cur->nNext;
+
+                    while(foo != tail_node)
+                    {
+                        if(comp(foo->nValue,candidate->nValue))
+                        {
+                            candidate = foo;
+                        }
+                        foo = foo->nNext;
+                    }
+                    if(candidate != cur)
+                    {
+                        candidate->swap(cur);
+                    }
+
+                    cur = cur_next;
+                    foo = cur_next->nNext;
+                }
+            }
+
 
         template <typename Compare>
             void quick_sort(Compare comp);
