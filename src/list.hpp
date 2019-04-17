@@ -306,10 +306,108 @@ namespace pdstl {
 
 
         template <typename Compare>
-            void quick_sort(Compare comp);
+            void merge_sort(Compare comp)
+            {
+                //List<int> example{1,2,3}
+                //真正的数据结构是 0(head.nNode)<->1<->2<->3<->0(tail.nNode)->nullptr
+                //为了简化排序，将head.nNode和tail.nNode断开
+                //成为 1->2->3->nullptr 的数据结构
+                //排序完成为 3->2->1->nullptr后，再和head.nNode和tail.nNode连接上
+                auto org_head_node = head.nNode;
+                auto org_tail_node = head.nNode;
+
+                auto cur_head_node = head.nNode->nNext;
+                cur_head_node->nPrev = nullptr;
+                org_head_node->nNext = nullptr;
+
+                auto cur_tail_node = tail.nNode->nPrev;
+                cur_tail_node->nNext = nullptr;
+                org_tail_node->nPrev = nullptr;
+
+
+                auto merged_head_node = _Merge_sort(cur_head_node,comp);
+
+                merged_head_node->nPrev = head.nNode;
+                head.nNode->nNext = merged_head_node;
+
+
+                auto merged_tail_node = merged_head_node;
+                while(merged_tail_node != nullptr && merged_tail_node->nNext != nullptr)
+                    merged_tail_node = merged_tail_node->nNext;
+
+                merged_tail_node->nNext = tail.nNode;
+                tail.nNode->nPrev = merged_tail_node;
+
+
+            }
+        template <typename Compare>
+            ListNode<T>*
+            _Merge_sort(ListNode<T>* head,Compare comp)
+            {
+                if(head == nullptr || head->nNext ==nullptr) return head;
+                //fast and slow
+
+                ListNode<T>* fast = head;
+                ListNode<T>* slow = head;
+                while(fast->nNext !=nullptr && fast->nNext->nNext !=nullptr)
+                {
+                    slow = slow->nNext;
+                    fast = fast->nNext->nNext;
+                }
+
+                ListNode<T>* head2 = slow->nNext;
+                slow->nNext = nullptr;
+
+                ListNode<T>* head1 = head;
+
+                head1 = _Merge_sort(head1,comp);
+                head2 = _Merge_sort(head2,comp);
+
+                return _Merge(head1,head2,comp);
+            }
 
         template <typename Compare>
-            void merge_sort(Compare comp);
+            ListNode<T>* _Merge(ListNode<T>* h1,ListNode<T>* h2,Compare comp)
+            {
+
+                ListNode<T>* dummyhead = new ListNode<T>();
+                ListNode<T>* mlist = dummyhead;
+                while(h1 != nullptr && h2 !=nullptr)
+                {
+                    if(comp(h1->nValue,h2->nValue))
+                    {
+//                        h1->insertAsNext(mlist);
+                        mlist->nNext = h1;
+                        h1->nPrev = mlist;
+                        h1 = h1->nNext;
+                    }
+                    else
+                    {
+                        mlist->nNext = h2;
+                        h2->nPrev = mlist;
+//                        h2->insertAsNext(mlist);
+                        h2 = h2->nNext;
+                    }
+                    mlist = mlist->nNext;
+                }
+
+                if(h1 !=nullptr)
+                {
+                        mlist->nNext = h1;
+                        h1->nPrev = mlist;
+                }
+
+                if(h2 !=nullptr)
+                {
+                        mlist->nNext = h2;
+                        h2->nPrev = mlist;
+                }
+                auto tmphead = dummyhead->nNext;
+                delete dummyhead;
+                return tmphead;
+            }
+
+
 
     public:
         //Member functions
@@ -400,11 +498,8 @@ namespace pdstl {
 
         //operattions
         void merge( list& other );
-        void merge( list&& other );
         template <class Compare>
         void merge( list& other, Compare comp ); //Compare : a functor or lambda
-        template <class Compare>
-        void merge( list&& other, Compare comp );
 
 
         //some rvalue overloaded versions are too tedious to implement
@@ -893,7 +988,61 @@ namespace pdstl {
     template <typename T,typename Alloc>
     void list<T,Alloc>::merge(list& other)
     {
+        merge(other,std::less<T>());
+    }
 
+
+    template <typename T,typename Alloc>
+        template <typename Compare>
+    void list<T,Alloc>::merge(list& other,Compare comp)
+    {
+
+        //head.nNode is a dummynode
+
+        _size += other._size;
+        other._size = 0;
+
+        ListNode<T>* nodelist = head.nNode;
+        //断开tail_Node的链接
+        tail.nNode->remove();
+        other.tail.nNode->remove();
+
+        auto node1 = head.nNode->nNext;
+        auto node2 = other.begin().nNode;
+        while(node1 != nullptr && node2 != nullptr)
+        {
+            if(comp(node1->nValue,node2->nValue))
+            {
+                nodelist->nNext = node1;
+                node1->nPrev = nodelist;
+                node1=node1->nNext;
+            }
+            else
+            {
+                nodelist->nNext = node2;
+                node2->nPrev = nodelist;
+                node2=node2->nNext;
+            }
+
+            nodelist = nodelist->nNext;
+        }
+
+        if(node1 != nullptr)
+        {
+            nodelist->nNext = node1;
+        }
+        else
+        {
+            nodelist->nNext = node2;
+        }
+
+        auto tail_node_pre = nodelist;
+
+        while(tail_node_pre !=nullptr && tail_node_pre->nNext != nullptr)
+            tail_node_pre = tail_node_pre->nNext;
+
+        tail_node_pre->nNext = tail.nNode;
+        tail.nNode->nPrev = tail_node_pre;
     }
 
     template<typename T, typename Alloc>
@@ -911,6 +1060,18 @@ namespace pdstl {
         }
 
 
+    }
+
+    template<typename T, typename Alloc>
+    void list<T,Alloc>::sort()
+    {
+       merge_sort(std::less<T>());
+    }
+    template<typename T, typename Alloc>
+        template <typename Compare>
+    void list<T,Alloc>::sort(Compare comp)
+    {
+       merge_sort(comp);
     }
 
 

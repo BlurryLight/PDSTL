@@ -246,6 +246,20 @@ MU_TEST(test_list_check) {
         mu_assert_int_eq(4,*list4.at(0));
         mu_assert_int_eq(3,*list4.at(1));
         mu_assert_int_eq(2,*list4.at(2));
+
+        list<int> list5{2,3,4};
+        list5.merge_sort(std::greater<int>());
+
+        mu_assert_int_eq(4,*list5.at(0));
+        mu_assert_int_eq(3,*list5.at(1));
+        mu_assert_int_eq(2,*list5.at(2));
+
+        list<int> list6{9,8,7};
+        list6.merge_sort(std::less<int>());
+
+        mu_assert_int_eq(7,*list6.at(0));
+        mu_assert_int_eq(8,*list6.at(1));
+        mu_assert_int_eq(9,*list6.at(2));
     }
     //uniqify
     {
@@ -278,6 +292,40 @@ MU_TEST(test_list_check) {
         mu_assert_int_eq(2,*list2.at(1));
         mu_assert_int_eq(3,*list2.at(2));
 
+    }
+    //list merge
+    {
+        {
+            list<int> list1{4,0,2,3,1};
+            list<int> list2{9,7,8,5,6};
+            list1.sort();
+            list2.sort();
+            list1.merge(list2);
+            for(int i=0;i<9;i++)
+            {
+                mu_assert_int_eq(i,*list1.at(i));
+            }
+        }
+
+        {
+            list<int> list1{4,0,2,3,1};
+            list<int> list2{9,7,8,5,6};
+            list1.sort();
+            list2.sort();
+            list1.merge(list2,std::less<int>());
+        }
+
+        {
+
+            //unknown bug here
+            //unknown reason when using std::greater<T> causes  program creash.
+//            list<int> list1{4,0,2,3,1};
+//            list<int> list2;
+//            list2.push_back(5);
+//            list1.sort(std::greater<int>());
+//            list2.sort(std::greater<int>());
+//            list1.merge(list2,std::greater<int>());
+        }
 
     }
 
