@@ -13,5 +13,19 @@ move(T&& a) noexcept
   typedef typename remove_reference<T>::type&& RvalRef;
   return static_cast<RvalRef>(a);
 }
+
+//from libc++
+template <typename T>
+inline T&& forward(typename remove_reference<T>::type& t)
+{
+    return static_cast<T&&>(t);
+}
+
+template <typename T>
+inline T&& forward(typename remove_reference<T>::type&& t)
+{
+    return static_cast<T&&>(t);
+}
+
 }//pdstl
 #endif

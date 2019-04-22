@@ -156,6 +156,63 @@ distance_type(const Iter&)
 };
 
 
+//========distance
+
+template <typename InputIt>
+inline typename iterator_traits<InputIt>::difference_type
+distance_impl(InputIt first,InputIt last,pdstl::input_iterator_tag)
+{
+    typename iterator_traits<InputIt>::difference_type n = 0;
+    while(first != last)
+    {
+        ++first;
+        ++n;
+    }
+    return n;
+}
+
+template <typename RandomIt>
+inline typename iterator_traits<RandomIt>::difference_type
+distance_impl(RandomIt first,RandomIt last,pdstl::random_access_iterator_tag)
+{
+    return last - first;
+}
+
+template <typename Iter>
+inline typename iterator_traits<Iter>::difference_type
+distance(Iter first,Iter last)
+{
+    typedef typename iterator_traits<Iter>::iterator_category tmp;
+    return distance_impl(first,last,tmp());
+}
+
+
+//==========advance
+
+template <typename RandomIt,typename Distance>
+inline void
+advance_impl(RandomIt& first,Distance n,pdstl::random_access_iterator_tag)
+{
+    first += n;
+}
+
+template <typename InputIt,typename Distance>
+inline void
+advance_impl(InputIt& first,Distance n,pdstl::input_iterator_tag)
+{
+    while(n--)
+        ++first;
+}
+
+template <typename Iter,typename Distance>
+inline void
+advance(Iter& first,Distance n)
+{
+    typedef typename iterator_traits<Iter>::iterator_category tmp;
+    return advance_impl(first,n,tmp());
+}
+
+
 
 
 }//pdstl
