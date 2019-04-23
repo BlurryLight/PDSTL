@@ -1,11 +1,12 @@
 ﻿#ifndef LIST_H
 #define LIST_H
 #include <cstddef> //for std::nullptr_t
-#include "iterator.hpp"
+#include <iterator.hpp>
 #include <initializer_list>
 #include <iterator> //std::reverse_iterator only
-#include "allocator.h"
+#include <allocator.h>
 #include <functional> //functors
+#include <utility.hpp>
 
 /*
  * This list is implemented by a doubley-linked list,
@@ -218,6 +219,7 @@ namespace pdstl {
                 p->nPrev->nNext = p->nNext;
             dataAlloc.destroy(p);
             dataAlloc.deallocate(p);
+            p = nullptr;
             --_size;
         }
 
@@ -1046,20 +1048,35 @@ namespace pdstl {
     }
 
     template<typename T, typename Alloc>
-    void list<T,Alloc>::unique()
+        template <typename BinaryPredict>
+    void list<T,Alloc>::unique(BinaryPredict Pred)
     {
         auto p = head.nNode;
         auto q = head.nNode->nNext;
         for (;q != tail.nNode;p = q,q = q->nNext)
         {
-            if(p->nValue == q->nValue)
+            if(Pred(p->nValue,q->nValue))
                {
                 deleteNode(q);
                 q = p;
             }
         }
+    }
 
-
+    template<typename T, typename Alloc>
+    void list<T,Alloc>::unique()
+    {
+        unique([&](const T& i,const T& j)->bool{return i==j;});
+//        auto p = head.nNode;
+//        auto q = head.nNode->nNext;
+//        for (;q != tail.nNode;p = q,q = q->nNext)
+//        {
+//            if(p->nValue == q->nValue)
+//               {
+//                deleteNode(q);
+//                q = p;
+//            }
+//        }
     }
 
     template<typename T, typename Alloc>
@@ -1071,8 +1088,120 @@ namespace pdstl {
         template <typename Compare>
     void list<T,Alloc>::sort(Compare comp)
     {
-       merge_sort(comp);
+        merge_sort(comp);
     }
+
+    template <typename T,typename Alloc>
+        template<class... Args>
+    typename list<T,Alloc>::reference
+    list<T,Alloc>::emplace_front(Args&&... args)
+    {
+        auto p = dataAlloc.allocate();
+        dataAlloc.construct(p,pdstl::move(ListNode<T>(pdstl::forward<Args>(args)...)));
+        ++_size;
+        p->insertAsNext(head.nNode);
+        return p->nValue;
+    }
+
+    template <typename T,typename Alloc>
+        template<class... Args>
+    typename list<T,Alloc>::reference
+    list<T,Alloc>::emplace_back(Args&&... args)
+    {
+        auto p = dataAlloc.allocate();
+        dataAlloc.construct(p,pdstl::move(ListNode<T>(pdstl::forward<Args>(args)...)));
+        ++_size;
+        p->insertAsPrev(tail.nNode);
+        return p->nValue;
+    }
+
+    template <typename T,typename Alloc>
+        template<class... Args>
+    typename list<T,Alloc>::iterator
+    list<T,Alloc>::emplace(const_iterator pos, Args&&... args)
+    {
+        auto p = dataAlloc.allocate();
+        dataAlloc.construct(p,pdstl::move(ListNode<T>(pdstl::forward<Args>(args)...)));
+        ++_size;
+        p->insertAsPrev(pos.nNode);
+        return iterator(p);
+    }
+
+    template<typename T, typename Alloc>
+    void list<T,Alloc>::splice(const_iterator pos,list& x)
+    {
+        _size+= x._size;
+        x._size = 0;
+        auto x_first_node = x.head.nNode->nNext;
+        auto x_last_node = x.tail.nNode->nPrev;
+
+        x_first_node->nPrev->nNext = x_last_node->nNext;
+        x_last_node->nNext->nPrev = x_first_node->nPrev;
+
+
+        x_first_node->nPrev = pos.nNode->nPrev;
+        pos.nNode->nPrev->nNext = x_first_node;
+
+        x_last_node->nNext = pos.nNode;
+        pos.nNode->nPrev = x_last_node;
+    }
+
+    template<typename T, typename Alloc>
+    void list<T,Alloc>::splice(const_iterator pos,list& x,const_iterator i)
+    {
+        _size++;
+        x._size--;
+
+        i.nNode->remove();
+        i.nNode->insertAsPrev(pos.nNode);
+    }
+
+    template<typename T, typename Alloc>
+    void list<T,Alloc>::splice(const_iterator pos,list& x,const_iterator first,const_iterator last)
+    {
+        size_type n = static_cast<size_type>(distance(first,last));
+        _size += n;
+        x._size -=n;
+
+        auto x_first_node = first.nNode;
+        auto x_last_node = last.nNode;
+
+        x_first_node->nPrev->nNext = x_last_node->nNext;
+        x_last_node->nNext->nPrev = x_first_node->nPrev;
+
+        x_first_node->nPrev = pos.nNode->nPrev;
+        pos.nNode->nPrev->nNext = x_first_node;
+
+        x_last_node->nNext = pos.nNode;
+        pos.nNode->nPrev = x_last_node;
+    }
+
+    template <typename T,typename Alloc>
+        template <typename UnaryPredicate>
+    void list<T,Alloc>::remove_if(UnaryPredicate Pred)
+    {
+        auto head_node = head.nNode->nNext;
+        auto tail_node = tail.nNode;
+        while(head_node != tail_node)
+        {
+            if(Pred(head_node->nValue))
+            {
+                auto head_node_next = head_node->nNext;
+                head_node->remove();
+                deleteNode(head_node);
+                head_node = head_node_next;
+            }
+            else {
+                head_node = head_node->nNext;
+            }
+        }
+    }
+    template <typename T,typename Alloc>
+    void list<T,Alloc>::remove(const T& value)
+    {
+        remove_if([&](const T& elem){return elem == value;});
+    }
+
 
 
 

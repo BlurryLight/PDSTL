@@ -1,7 +1,9 @@
 ﻿#include "minunit.h"
 #include "list.hpp"
+//#include <list>
 #include <string>
 #include <iostream>
+
 
 
 using namespace pdstl;
@@ -269,6 +271,70 @@ MU_TEST(test_list_check) {
         mu_assert_int_eq(1,*list1.at(0));
         mu_assert_int_eq(2,*list1.at(1));
         mu_assert_int_eq(3,*list1.at(2));
+
+        struct bar
+        {
+            int x;
+            bar():x(0){}
+            bar(int xx):x(xx){}
+        };
+
+        struct bar_predicator
+        {
+            bool operator()(const bar& bar_x,const bar& bar_y)
+            {
+                return (bar_x.x == bar_y.x);
+            }
+        };
+
+        list<bar> lbar;
+        lbar.emplace_back(1);
+        lbar.emplace_back(1);
+        lbar.emplace_back(2);
+        lbar.emplace_back(2);
+        lbar.emplace_back(3);
+        lbar.emplace_back(3);
+
+        lbar.unique(bar_predicator());
+
+        int k = 1;
+        for(auto i : lbar)
+        {
+            mu_assert_int_eq(k,i.x);
+            k++;
+        }
+
+
+
+    }
+    //emplace functions
+    {
+        list<int> list1;
+        list1.emplace_front(1);
+        mu_assert_int_eq(1,*list1.at(0));
+        mu_assert_int_eq(1,list1.size());
+        //{head,1,tail}
+
+        list1.emplace_back(3);
+        mu_assert_int_eq(3,*list1.at(1));
+        mu_assert_int_eq(2,list1.size());
+
+        //{head,1,3,tail}
+
+        list1.emplace(list1.begin(),5);
+        //{head,5,1,3,tail}
+       auto it1 = list1.emplace(list1.begin(),10); //it1 is an iterator -> 10
+        //{head,10,5,1,3,tail}
+
+        mu_assert_int_eq(10,*list1.at(0));
+        mu_assert_int_eq(5,*list1.at(1));
+        mu_assert_int_eq(1,*list1.at(2));
+        mu_assert_int_eq(3,*list1.at(3));
+
+        mu_assert_int_eq(10,*it1);
+
+        mu_assert_int_eq(4,list1.size());
+
     }
     //list_node inline func
     {
@@ -325,6 +391,68 @@ MU_TEST(test_list_check) {
 //            list1.sort(std::greater<int>());
 //            list2.sort(std::greater<int>());
 //            list1.merge(list2,std::greater<int>());
+        }
+
+        //splice
+        {
+            {
+                list<int> list1{1,5,6};
+                list<int> list2{2,3,4};
+                list1.splice(++list1.begin(),list2); //shoud be {1,2,3,4,5,6}
+                for(auto i =0;i<list1.size();++i)
+                {
+                    mu_assert_int_eq((i+1),*list1.at(i));
+                }
+            }
+
+            {
+                list<int> list1{1,3,4,5,6};
+                list<int> list2{2,3,4};
+                list1.splice(++list1.begin(),list2,list2.begin()); //shoud be {1,2,3,4,5,6}
+                for(auto i =0;i<list1.size();++i)
+                {
+                    mu_assert_int_eq((i+1),*list1.at(i));
+                }
+                //list2 should be {3,4}
+                    mu_assert_int_eq(3,*list2.at(0));
+                    mu_assert_int_eq(4,*list2.at(1));
+            }
+
+            {
+                list<int> list1{1,6};
+                list<int> list2{1,2,3,4,5,6};
+
+                auto it2 = list2.begin();
+                pdstl::advance(it2,4);
+                list1.splice(++list1.begin(),list2,++list2.begin(),it2); //shoud be {1,2,3,4,5,6}
+
+                for(auto i =0;i<list1.size();++i)
+                {
+                    mu_assert_int_eq((i+1),*list1.at(i));
+                }
+                //list2 should be {1,6}
+                    mu_assert_int_eq(1,*list2.at(0));
+                    mu_assert_int_eq(6,*list2.at(1));
+            }
+        }
+
+        //remove and remove_if
+
+        {
+            int mynums[] = {1,2,3,4,5};
+            list<int> list1 (mynums,mynums + 5); //{1,2,3,4,5}
+
+            list1.remove_if([](const int& value){ return (value%2)==1; });//remove odd
+            //list1 should be {2,4}
+            mu_assert_int_eq(2,*list1.at(0));
+            mu_assert_int_eq(4,*list1.at(1));
+            mu_assert_int_eq(2,list1.size());
+
+            list1.remove(4);
+            mu_assert_int_eq(1,list1.size());
+            mu_assert_int_eq(2,*list1.at(0));
+
+
         }
 
     }
