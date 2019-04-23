@@ -451,7 +451,17 @@ MU_TEST(test_list_check) {
             list1.remove(4);
             mu_assert_int_eq(1,list1.size());
             mu_assert_int_eq(2,*list1.at(0));
+        }
+        //reverse
 
+        {
+            list<int> list1 {1,2,3,4,5};
+            list1.reverse();
+            int k = 5;
+            for(auto x : list1)
+            {
+                mu_assert_int_eq(x,k--);
+            }
 
         }
 

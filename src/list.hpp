@@ -1202,6 +1202,35 @@ namespace pdstl {
         remove_if([&](const T& elem){return elem == value;});
     }
 
+    template <typename T,typename Alloc>
+    void list<T,Alloc>::reverse()
+    {
+        if(_size <= 1) return;
+
+        auto cur = head.nNode;
+        auto cur_next = head.nNode->nNext;
+
+        while(cur_next!=nullptr)
+        {
+
+            cur->nNext = cur->nPrev;
+            cur->nPrev = cur_next;
+
+            cur = cur_next;
+            cur_next = cur_next->nNext;
+        }
+
+        cur->nNext = cur->nPrev;
+        cur->nPrev = nullptr; //cur is the new head_node and also the original tail_node
+
+        auto tmp = head.nNode;
+        head.nNode = tail.nNode;
+        tail.nNode = tmp;
+
+    }
+
+
+
 
 
 
