@@ -1,4 +1,4 @@
-#ifndef SHARED_PTR_IMPL_H
+﻿#ifndef SHARED_PTR_IMPL_H
 #define SHARED_PTR_IMPL_H
 
 #include "allocator.h"
@@ -24,24 +24,31 @@ public :
     typedef std::function<void(T*)> deleter_type;
     shared_ptr_base()  = delete;
     shared_ptr_base(T* p,int c = 1,deleter_type d = deleter_type(_default_deleter<T>()))
-        : res_ptr(p),_deleter(d) { count = new int(c);}
+        : res_ptr(p),_deleter(d) { count = new int{c};weakRef = new int{0};}
     shared_ptr_base(T* p,int *c,deleter_type d = deleter_type(_default_deleter<T>()))
-        : res_ptr(p),_deleter(d),count(c){}
+        : res_ptr(p),_deleter(d),count(c),weakRef(new int{0}){}
 //    shared_ptr_base(T* p,int* c ) : res_ptr(p),count(c) {}
     shared_ptr_base(const shared_ptr_base&) = delete;
     shared_ptr_base(shared_ptr_base&&) = delete;
     shared_ptr_base operator=(shared_ptr_base&) = delete;
     shared_ptr_base operator=(const shared_ptr_base&) = delete;
+    void release()
+    {
+        if((count == nullptr || *count == 0) && ((weakRef ==nullptr) || *weakRef == 0))
+        {
+            if(res_ptr)// exclude nullptr
+            {
+    //            delete res_ptr;
+                _deleter(res_ptr);
+                res_ptr = nullptr;
+                delete count;
+                count = nullptr;
+            }
+        }
+    }
     ~shared_ptr_base()
     {
-        if(res_ptr)// exclude nullptr
-        {
-//            delete res_ptr;
-            _deleter(res_ptr);
-            delete count;
-            res_ptr = nullptr;
-            count = nullptr;
-        }
+
     }
 
     friend class shared_ptr<T>;
@@ -63,7 +70,20 @@ public :
     }
     int decr()
     {
-       return  --(*count);
+        int tmp = --(*count);
+        release();
+        return tmp;
+    }
+    int incr_weakRef()
+    {
+        int tmp = ++(*weakRef);
+        return tmp;
+    }
+    int decr_weakRef()
+    {
+        int tmp = --(*weakRef);
+        release();
+        return tmp;
     }
     int* get_count_ptr()  const
     {
@@ -83,6 +103,7 @@ private:
     };
     T* res_ptr;
     int* count;
+    int* weakRef;
     deleter_type _deleter;
 };
 
@@ -92,17 +113,6 @@ class shared_ptr
 private:
     shared_ptr_base<T>* base_ptr;
     template <class Y> friend class weak_ptr;
-    void release()
-    {
-        if(base_ptr == nullptr) return;
-        if(base_ptr->decr() == 0)
-           {
-            base_ptr->~shared_ptr_base<T>();
-            delete base_ptr;
-            base_ptr = nullptr;
-            }
-
-    }
 public:
     //ugly implementation but useful
     //it's the cost to seperate count from shared_ptr class
@@ -153,7 +163,7 @@ public:
     void reset(U* ptr)
     {
         if(ptr==nullptr ||this->get() == ptr) return;
-        release();
+        base_ptr->decr();
         base_ptr = new shared_ptr_base<T>(ptr);
     }
     template <typename U,class deleter>
@@ -165,7 +175,7 @@ public:
 
     ~shared_ptr()
     {
-        release();
+        base_ptr->decr();
     }
     template <typename U>
     shared_ptr(const shared_ptr<U>& ptr)
@@ -270,14 +280,15 @@ private:
     template <class Y> friend class shared_ptr;
     shared_ptr_base<T>* base_ptr;
 public:
-    explicit weak_ptr():base_ptr(new shared_ptr_base<T>(nullptr)){}
-    explicit weak_ptr(const weak_ptr& ptr):base_ptr(ptr.base_ptr){}
-    explicit weak_ptr(const shared_ptr<T>& ptr):base_ptr(ptr.base_ptr){}
+    explicit weak_ptr():base_ptr(new shared_ptr_base<T>(nullptr)){base_ptr->incr_weakRef();}
+    explicit weak_ptr(const weak_ptr& ptr):base_ptr(ptr.base_ptr){base_ptr->incr_weakRef();}
+    explicit weak_ptr(const shared_ptr<T>& ptr):base_ptr(ptr.base_ptr){base_ptr->incr_weakRef();}
     explicit weak_ptr(weak_ptr&& ptr):base_ptr(ptr.base_ptr){ptr.base_ptr=nullptr;}
 //    explicit weak_ptr(weak_ptr&& ptr):base_ptr(ptr.base_ptr){ptr.release();}
-    ~weak_ptr(){}
+    ~weak_ptr(){base_ptr->decr_weakRef();}
     void reset()
     {
+        base_ptr->decr_weakRef();
         base_ptr = nullptr;
     }
     void swap(weak_ptr& ptr)
@@ -288,21 +299,24 @@ public:
     }
     weak_ptr& operator=(const weak_ptr& ptr)
     {
-//        this->base_ptr = ptr.base_ptr;
+        this->base_ptr = ptr.base_ptr;
+        base_ptr->incr_weakRef();
         //swap写法是cppreference要求的,上面一行是它的实际作用
-        weak_ptr(ptr).swap(*this);
+//        weak_ptr(ptr).swap(*this);
         return *this;
     }
     weak_ptr& operator=(const shared_ptr<T>& ptr)
     {
-//        this->base_ptr = ptr.base_ptr;
-        weak_ptr(ptr).swap(*this);
+        this->base_ptr = ptr.base_ptr;
+        base_ptr->incr_weakRef();
+//        weak_ptr(ptr).swap(*this);
         return *this;
     }
     weak_ptr& operator=(weak_ptr&& ptr)
     {
-//        this->base_ptr = ptr.base_ptr;
-        weak_ptr(pdstl::move(ptr)).swap(*this);
+        this->base_ptr = ptr.base_ptr;
+        ptr.base_ptr = nullptr;
+//        weak_ptr(pdstl::move(ptr)).swap(*this);
         return *this;
     }
     int use_count() const
@@ -313,7 +327,7 @@ public:
     }
     bool expired() const
     {
-        if(this->use_count() == 0)
+        if(this->use_count() == 0 )
             return true;
         return false;
     }

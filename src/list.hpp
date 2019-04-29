@@ -1159,12 +1159,14 @@ namespace pdstl {
     template<typename T, typename Alloc>
     void list<T,Alloc>::splice(const_iterator pos,list& x,const_iterator first,const_iterator last)
     {
+        if(first == last ) return;
+
         size_type n = static_cast<size_type>(distance(first,last));
         _size += n;
         x._size -=n;
 
         auto x_first_node = first.nNode;
-        auto x_last_node = last.nNode;
+        auto x_last_node = last.nNode->nPrev;   //[first,last)
 
         x_first_node->nPrev->nNext = x_last_node->nNext;
         x_last_node->nNext->nPrev = x_first_node->nPrev;

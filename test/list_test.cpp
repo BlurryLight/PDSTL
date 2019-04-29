@@ -423,7 +423,7 @@ MU_TEST(test_list_check) {
                 list<int> list2{1,2,3,4,5,6};
 
                 auto it2 = list2.begin();
-                pdstl::advance(it2,4);
+                pdstl::advance(it2,5);
                 list1.splice(++list1.begin(),list2,++list2.begin(),it2); //shoud be {1,2,3,4,5,6}
 
                 for(auto i =0;i<list1.size();++i)
