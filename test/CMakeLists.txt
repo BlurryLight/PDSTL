@@ -15,5 +15,6 @@ add_executable(test_type_traits type_traits_test.cpp)
 add_executable(test_iterator_traits iterator_test.cpp)
 add_executable(test_vector vector_test.cpp)
 add_executable(test_list list_test.cpp)
+add_executable(test_pair pair_test.cpp)
 
 

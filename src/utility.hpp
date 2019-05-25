@@ -1,5 +1,8 @@
 #ifndef UTILITY_HPP
 #define UTILITY_HPP
+/*
+ * pair has been moved to pair.hpp
+ */
 namespace pdstl
 {
 template< class T > struct remove_reference      {typedef T type;};
@@ -16,13 +19,13 @@ move(T&& a) noexcept
 
 //from libc++
 template <typename T>
-inline T&& forward(typename remove_reference<T>::type& t)
+T&& forward(typename remove_reference<T>::type& t)
 {
     return static_cast<T&&>(t);
 }
 
 template <typename T>
-inline T&& forward(typename remove_reference<T>::type&& t)
+T&& forward(typename remove_reference<T>::type&& t)
 {
     return static_cast<T&&>(t);
 }
