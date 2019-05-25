@@ -5,6 +5,12 @@
  * https://github.com/moya-lang/Allocator
  */
 
+/*
+// Deprecated !!
+// 比起系统默认的Allocator，它没有任何优势，反而带来无穷无尽的bug，浪费许多时间来调试。所以弃用
+// Compared with the Allocator_new version,it has no advantage but tons of bugs.I've spent more than 5 hours
+// on debugging it ,trying to employ it to work with  containers but obviously I failed.
+*/
 
 #include <cstddef> //std::size_t
 #include <new> //std::bad_alloc
