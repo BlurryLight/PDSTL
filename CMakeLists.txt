@@ -10,6 +10,12 @@ IF(USE_ALLOCATOR_MEMPOOL)
 add_definitions("-DALLOCATOR_MEMPOOL")
 endif(USE_ALLOCATOR_MEMPOOL)
 
+OPTION(DEBUG_FLAG "Will print more information when testing" OFF)
+
+IF(DEBUG_FLAG)
+add_definitions("-DDEBUG_FLAG")
+endif(DEBUG_FLAG)
+
 add_subdirectory(test)
 
 enable_testing()

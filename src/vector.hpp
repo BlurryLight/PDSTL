@@ -1,8 +1,6 @@
 ﻿#ifndef VECTOR_H
 #define VECTOR_H
 
-#define DEBUG_FLAG
-
 #include <cstddef>
 #ifdef DEBUG_FLAG
 #include <iostream>
