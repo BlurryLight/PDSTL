@@ -12,7 +12,9 @@ MU_TEST(test_avl_tree_node_check)
         root->rChild = new TreeNode<int>(3);
         root->lChild->parent = root;
         root->rChild->parent = root;
-        root->DisPlay();
+#ifdef DEBUG_FLAG
+        root->Display();
+#endif
         root->update_n();
         root->update_height();
         mu_assert_int_eq(2, root->data);
@@ -30,6 +32,7 @@ MU_TEST(test_avl_tree_node_check)
 
 MU_TEST(test_avl_tree_check)
 {
+    //insert and rotate
     {
         AVLTree<int> it;
         mu_assert_int_eq(1, *it.insert(1));
@@ -38,6 +41,7 @@ MU_TEST(test_avl_tree_check)
         mu_assert_int_eq(4, *it.insert(4));
     }
 
+    //insert char and rotate
     {
         AVLTree<char> it;
         char test = 'a';
@@ -45,8 +49,28 @@ MU_TEST(test_avl_tree_check)
         for (int i = 1; i != 10; ++i)
             it.insert(static_cast<char>('a' + i));
 #ifdef DEBUG_FLAG
-        it.root->lChild->DisPlay();
+        it.root->lChild->Display();
+        it.root->Print();
 #endif
+    }
+    //at
+    {
+        AVLTree<int> it;
+        for (int i = 0; i != 10; ++i)
+            it.insert(i);
+        for (int i = 0; i != 10; ++i) {
+            typename AVLTree<int>::const_iterator itt = it.at(i);
+            mu_assert_int_eq(i, *itt);
+        }
+    }
+    //operator []
+    {
+        AVLTree<int> it;
+        for (int i = 0; i != 10; ++i)
+            it.insert(i);
+        for (int i = 0; i != 10; ++i) {
+            mu_assert_int_eq(i, it[i]);
+        }
     }
 }
 

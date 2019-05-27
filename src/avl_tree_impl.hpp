@@ -1,8 +1,9 @@
 #ifndef AVL_TREE_HPP
 #define AVL_TREE_HPP
 
+//#define DEBUG_FLAG
+
 #ifdef DEBUG_FLAG
-#include "vector.hpp" //Display function needs it
 #include <iostream>
 #endif
 
@@ -15,7 +16,9 @@
 
 namespace pdstl {
 
-static pdstl::vector<int> vec_left{100, 0}; //help Display work
+#ifdef DEBUG_FLAG
+static int vec_left[100] = {0}; //help work
+#endif
 
 template<typename T>
 struct TreeNode
@@ -111,7 +114,7 @@ private:
     //this function prints "pretty" Binary tree for debugging
     void DisplaySubtree(TreeNode *root, int ident)
     {
-        std::fill(vec_left.begin(), vec_left.end(), 0);
+        std::fill(std::begin(vec_left), std::end(vec_left), 0);
         if (ident > 0) {
             for (int i = 0; i < ident - 1; ++i) {
                 printf(vec_left[i] ? "│   " : "    ");
@@ -135,8 +138,18 @@ private:
         DisplaySubtree(root->lChild, ident + 1);
     }
 
+    void PrintSubtree(TreeNode *root)
+    {
+        if (root == nullptr)
+            return;
+        PrintSubtree(root->lChild);
+        std::cout << root->data << "\t";
+        PrintSubtree(root->rChild);
+    }
+
 public:
-    void DisPlay() { this->DisplaySubtree(this, 0); }
+    void Display() { this->DisplaySubtree(this, 0); }
+    void Print() { PrintSubtree(this); }
 #endif
 };
 
@@ -159,7 +172,7 @@ struct TreeIterator
     //定义往const的转换
     operator TreeIterator<T, const T *, const T &>()
     {
-        return TreeIterator<T, const T *, const T &>(*this);
+        return TreeIterator<T, const T *, const T &>(this->ptr);
     }
 
 public:
@@ -255,155 +268,20 @@ public:
     typedef Alloc Allocator_type;
     typedef size_t size_type;
     typedef typename Alloc::difference_type difference_type;
-    typedef typename Alloc::reference reference;
-    typedef typename Alloc::const_reference const_reference;
+    typedef T &reference;
+    typedef const T &const_reference;
     typedef TreeIterator<T, T *, T &> iterator;
+    typedef TreeIterator<T, const T *, const T &> const_iterator;
     typedef T *pointer;
     typedef TreeNode<T> node_type;
 
-    iterator insert(const T &val)
-    {
-        iterator res;
-        node_type *parent = root; //parent will be the parent of newly inserted node
-        while (true) {
-            ++parent->n;
-            //root is a dummy node
-            //real AVL is in its left-subtree
-            if (parent == root || parent->data > val) {
-                if (parent->lChild) {
-                    parent = parent->lChild;
-                } else {
-                    parent->lChild = createNode(val);
-                    parent->lChild->parent = parent;
-                    res = iterator(parent->lChild);
-                    break;
-                }
-            }
-            //right sub_tree
-            else {
-                if (parent->rChild) {
-                    parent = parent->rChild;
-                } else {
-                    parent->rChild = createNode(val);
-                    parent->rChild->parent = parent;
-                    res = iterator(parent->rChild);
-                    break;
-                }
-            }
-        }
+    iterator insert(const T &val);
+    iterator insert(T &&val);
 
-        int branch_height = 1;
-        //parent now still stays above the newly inserted node
-        //and it's time to update height
-        //and rotate
-        while (parent) {
-            //         A(4)
-            //       /     \
-            //      B(3)   C(1)
-            // when subtree C insert new node,A neither needs to update Height
-            // nor roate
-            if (parent == root)
-                break;
-            if (parent->height > branch_height)
-                break;
-            parent->height = branch_height + 1;
-            if (parent->get_imbalance_factor() > 1) {
-                //LR case
-                if (parent->lChild->get_imbalance_factor() < 0) {
-                    left_rotate(parent->lChild);
-                }
-                //LL case
-                right_rotate(parent);
-                break;
-            } else if (parent->get_imbalance_factor() < -1) {
-                //RL case
-                if (parent->rChild->get_imbalance_factor() > 0) {
-                    right_rotate(parent->rChild);
-                }
-                //rr case
-                left_rotate(parent);
-                break;
-            }
-            branch_height = parent->height;
-            parent = parent->parent;
-        }
-        parent->update_n();
-        parent->update_height();
-        return res;
-    }
-
-    //This T&& is not forwarding reference
-    //it absolutely is a RVALUE Reference
-    iterator insert(T &&val)
-    {
-        iterator res;
-        node_type *parent = root; //parent will be the parent of newly inserted node
-        while (true) {
-            ++parent->n;
-            //root is a dummy node
-            //real AVL is in its left-subtree
-            if (parent == root || parent->data > val) {
-                if (parent->lChild) {
-                    parent = parent->lChild;
-                } else {
-                    parent->lChild = createNode(pdstl::move(val));
-                    parent->lChild->parent = parent;
-                    res = iterator(parent->lChild);
-                    break;
-                }
-            }
-            //right sub_tree
-            else {
-                if (parent->rChild) {
-                    parent = parent->rChild;
-                } else {
-                    parent->rChild = createNode(pdstl::move(val));
-                    parent->rChild->parent = parent;
-                    res = iterator(parent->rChild);
-                    break;
-                }
-            }
-        }
-
-        int branch_height = 1;
-        //parent now still stays above the newly inserted node
-        //and it's time to update height
-        //and rotate
-        while (parent) {
-            //         A(4)
-            //       /     \
-            //      B(3)   C(1)
-            // when subtree C insert new node,A neither needs to update Height
-            // nor roate
-            if (parent == root)
-                break;
-            if (parent->height > branch_height)
-                break;
-            parent->height = branch_height + 1;
-            if (parent->get_imbalance_factor() > 1) {
-                //LR case
-                if (parent->lChild->get_imbalance_factor() < 0) {
-                    left_rotate(parent->lChild);
-                }
-                //LL case
-                right_rotate(parent);
-                break;
-            } else if (parent->get_imbalance_factor() < -1) {
-                //RL case
-                if (parent->rChild->get_imbalance_factor() > 0) {
-                    right_rotate(parent->rChild);
-                }
-                //rr case
-                left_rotate(parent);
-                break;
-            }
-            branch_height = parent->height;
-            parent = parent->parent;
-        }
-        parent->update_n();
-        parent->update_height();
-        return res;
-    }
+    iterator at(size_type i);
+    reference operator[](size_type i);
+    const_reference operator[](size_type i) const;
+    iterator erase(iterator it);
 
 #ifdef DEBUG_FLAG
 public:
@@ -450,9 +328,80 @@ private:
         return new_root;
     }
 
-    void right_rotate(node_type *root)
-    {
-        /*
+    void right_rotate(node_type *root);
+
+    void left_rotate(node_type *root);
+
+public:
+    //interfaces
+    AVLTree() noexcept;
+    AVLTree(const AVLTree &other) noexcept;
+    AVLTree(AVLTree &&other) noexcept;
+    ~AVLTree() noexcept;
+};
+template<typename T, typename Alloc>
+AVLTree<T, Alloc>::AVLTree() noexcept
+{
+    root = createNode();
+    root->n = 0;
+}
+template<typename T, typename Alloc>
+AVLTree<T, Alloc>::AVLTree(const AVLTree &other) noexcept
+{
+    root = deep_copy_recur(other.root);
+}
+template<typename T, typename Alloc>
+AVLTree<T, Alloc>::AVLTree(AVLTree &&other) noexcept
+{
+    root = other.root;
+    other.root = createNode();
+    other.root->n = 0;
+}
+template<typename T, typename Alloc>
+AVLTree<T, Alloc>::~AVLTree() noexcept
+{
+    clear_node_recur(root->lChild);
+    clear_node_recur(root->rChild);
+    root->lChild = nullptr;
+    root->rChild = nullptr;
+    dataAlloc.destroy(root);
+    dataAlloc.deallocate(root);
+}
+
+template<typename T, typename Alloc>
+void AVLTree<T, Alloc>::left_rotate(node_type *root)
+{
+    node_type *new_root = root->rChild;
+    node_type *tmp = root->rChild->lChild;
+    if (root->parent) {
+        if (root == root->parent->lChild) {
+            root->parent->lChild = new_root;
+        } else {
+            root->parent->rChild = new_root;
+        }
+    }
+
+    new_root->parent = root->parent;
+    new_root->lChild = root;
+    root->parent = new_root;
+    root->rChild = tmp;
+    if (tmp)
+        tmp->parent = root;
+    //update informations
+    //keep in order
+    root->update_n();
+    new_root->update_n();
+
+    while (root) {
+        root->update_height();
+        root = root->parent;
+    }
+}
+
+template<typename T, typename Alloc>
+void AVLTree<T, Alloc>::right_rotate(node_type *root)
+{
+    /*
          *   root
          *  /           ->rightrotate     new_root
          *  new_root                       /     \
@@ -460,88 +409,219 @@ private:
          * T1  T2                                /
          *                                    T2
          */
-        node_type *new_root = root->lChild;
-        node_type *tmp = root->lChild->rChild;
-        if (root->parent) {
-            if (root == root->parent->lChild) {
-                root->parent->lChild = new_root;
+    node_type *new_root = root->lChild;
+    node_type *tmp = root->lChild->rChild;
+    if (root->parent) {
+        if (root == root->parent->lChild) {
+            root->parent->lChild = new_root;
+        } else {
+            root->parent->rChild = new_root;
+        }
+    }
+
+    new_root->parent = root->parent;
+    new_root->rChild = root;
+    root->parent = new_root;
+    root->lChild = tmp;
+    if (tmp)
+        tmp->parent = root;
+    //update informations
+    //keep in order
+    root->update_n();
+    new_root->update_n();
+
+    while (root) {
+        root->update_height();
+        root = root->parent;
+    }
+}
+
+template<typename T, typename Alloc>
+typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::insert(const T &val)
+{
+    iterator res;
+    node_type *parent = root; //parent will be the parent of newly inserted node
+    while (true) {
+        ++parent->n;
+        //root is a dummy node
+        //real AVL is in its left-subtree
+        if (parent == root || parent->data > val) {
+            if (parent->lChild) {
+                parent = parent->lChild;
             } else {
-                root->parent->rChild = new_root;
+                parent->lChild = createNode(val);
+                parent->lChild->parent = parent;
+                res = iterator(parent->lChild);
+                break;
+            }
+        } else {
+            if (parent->rChild) {
+                parent = parent->rChild;
+            } else {
+                parent->rChild = createNode(val);
+                parent->rChild->parent = parent;
+                res = iterator(parent->rChild);
+                break;
             }
         }
-
-        new_root->parent = root->parent;
-        new_root->rChild = root;
-        root->parent = new_root;
-        root->lChild = tmp;
-        if (tmp)
-            tmp->parent = root;
-        //update informations
-        //keep in order
-        root->update_n();
-        new_root->update_n();
-
-        while (root) {
-            root->update_height();
-            root = root->parent;
-        }
     }
 
-    void left_rotate(node_type *root)
-    {
-        node_type *new_root = root->rChild;
-        node_type *tmp = root->rChild->lChild;
-        if (root->parent) {
-            if (root == root->parent->lChild) {
-                root->parent->lChild = new_root;
+    int branch_height = 1;
+    while (parent) {
+        if (parent == root)
+            break;
+        if (parent->height > branch_height)
+            break;
+        parent->height = branch_height + 1;
+        if (parent->get_imbalance_factor() > 1) {
+            //LR case
+            if (parent->lChild->get_imbalance_factor() < 0) {
+                left_rotate(parent->lChild);
+            }
+            //LL case
+            right_rotate(parent);
+            break;
+        } else if (parent->get_imbalance_factor() < -1) {
+            //RL case
+            if (parent->rChild->get_imbalance_factor() > 0) {
+                right_rotate(parent->rChild);
+            }
+            //rr case
+            left_rotate(parent);
+            break;
+        }
+        branch_height = parent->height;
+        parent = parent->parent;
+    }
+    parent->update_n();
+    parent->update_height();
+    return res;
+}
+
+//This T&& is not forwarding reference
+//it absolutely is a RVALUE Reference
+template<typename T, typename Alloc>
+typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::insert(T &&val)
+{
+    iterator res;
+    node_type *parent = root; //parent will be the parent of newly inserted node
+    while (true) {
+        ++parent->n;
+        //root is a dummy node
+        //real AVL is in its left-subtree
+        if (parent == root || parent->data > val) {
+            if (parent->lChild) {
+                parent = parent->lChild;
             } else {
-                root->parent->rChild = new_root;
+                parent->lChild = createNode(pdstl::move(val));
+                parent->lChild->parent = parent;
+                res = iterator(parent->lChild);
+                break;
             }
         }
-
-        new_root->parent = root->parent;
-        new_root->lChild = root;
-        root->parent = new_root;
-        root->rChild = tmp;
-        if (tmp)
-            tmp->parent = root;
-        //update informations
-        //keep in order
-        root->update_n();
-        new_root->update_n();
-
-        while (root) {
-            root->update_height();
-            root = root->parent;
+        //right sub_tree
+        else {
+            if (parent->rChild) {
+                parent = parent->rChild;
+            } else {
+                parent->rChild = createNode(pdstl::move(val));
+                parent->rChild->parent = parent;
+                res = iterator(parent->rChild);
+                break;
+            }
         }
     }
 
-public:
-    //interfaces
-    AVLTree() noexcept
-    {
-        root = createNode();
-        root->n = 0;
+    int branch_height = 1;
+    //parent now still stays above the newly inserted node
+    //and it's time to update height
+    //and rotate
+    while (parent) {
+        /*
+            //         A(4)
+            //       /     \
+            //      B(3)   C(2)
+            //  now A's height is 4 and its balance factor is 1;
+            // when subtree C inserts new node,A neither needs to update Height
+            // nor rotate
+            */
+        if (parent == root)
+            break;
+        if (parent->height > branch_height)
+            break;
+        parent->height = branch_height + 1;
+        if (parent->get_imbalance_factor() > 1) {
+            //LR case
+            if (parent->lChild->get_imbalance_factor() < 0) {
+                left_rotate(parent->lChild);
+            }
+            //LL case
+            right_rotate(parent);
+            break;
+        } else if (parent->get_imbalance_factor() < -1) {
+            //RL case
+            if (parent->rChild->get_imbalance_factor() > 0) {
+                right_rotate(parent->rChild);
+            }
+            //rr case
+            left_rotate(parent);
+            break;
+        }
+        branch_height = parent->height;
+        parent = parent->parent;
     }
+    parent->update_n();
+    parent->update_height();
+    return res;
+}
 
-    AVLTree(const AVLTree &other) noexcept { root = deep_copy_recur(other.root); }
+template<typename T, typename Alloc>
+typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::erase(iterator it)
+{}
 
-    AVLTree(AVLTree &&other) noexcept
-    {
-        root = other.root;
-        other.root = createNode();
-        other.root->n = 0;
+template<typename T, typename Alloc>
+typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::at(size_type i)
+{
+    if (i >= root->n || i < 0)
+        exit(1);
+
+    node_type *real_root = root->lChild;
+    size_type index = i + 1;
+    /* https://wxx5433.github.io/findget-bst-node-index.html
+        * Analysis:
+        * index <= n of (left subtree) search the left subtree
+        * index == n of (left subtree) + 1  return current node
+        * index > n of (leftsubtree) + 1   index -= n of leftsubtree + 1;
+        * then search the right subtree
+        */
+
+    while (real_root) {
+        int left_size = real_root->lChild ? real_root->lChild->n : 0;
+
+        if (index <= left_size) {
+            real_root = real_root->lChild;
+        } else if (index == (left_size + 1)) {
+            break;
+        } else {
+            index -= (left_size + 1);
+            real_root = real_root->rChild;
+        }
     }
-    ~AVLTree() noexcept
-    {
-        clear_node_recur(root->lChild);
-        clear_node_recur(root->rChild);
-        root->lChild = nullptr;
-        root->rChild = nullptr;
-        dataAlloc.destroy(root);
-        dataAlloc.deallocate(root);
-    }
-};
+    return iterator(real_root);
+}
+
+template<typename T, typename Alloc>
+typename AVLTree<T, Alloc>::reference AVLTree<T, Alloc>::operator[](size_type i)
+{
+    return *(at(i));
+}
+
+template<typename T, typename Alloc>
+typename AVLTree<T, Alloc>::const_reference AVLTree<T, Alloc>::operator[](size_type i) const
+{
+    return *(at(i));
+}
+
 } //namespace pdstl
 
 #endif
