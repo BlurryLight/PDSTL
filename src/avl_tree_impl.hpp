@@ -282,6 +282,14 @@ public:
     reference operator[](size_type i);
     const_reference operator[](size_type i) const;
     iterator erase(iterator it);
+    iterator find(const_reference value);
+
+    iterator begin();
+    const_iterator begin() const;
+    const_iterator cbegin() const;
+    iterator end();
+    const_iterator end() const;
+    const_iterator cend() const;
 
 #ifdef DEBUG_FLAG
 public:
@@ -577,7 +585,144 @@ typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::insert(T &&val)
 
 template<typename T, typename Alloc>
 typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::erase(iterator it)
-{}
+{
+    iterator res(it);
+    ++res;
+    auto ptr = it.ptr;
+    TreeNode<T> *q;
+    if (!ptr->lChild || !ptr->rChild) {
+        q = ptr;
+    } else {
+        q = res.ptr; //ptr has both child
+    }
+
+    TreeNode<T> *s;
+    if (q->lChild) {
+        s = q->lChild;
+        q->lChild = nullptr;
+    } else { //including q->rChild = nullptr;
+        s = q->rChild;
+        q->rChild = nullptr;
+    }
+
+    if (s) {
+        s->parent = q->parent;
+    }
+
+    if (q == q->parent->lChild) {
+        q->parent->lChild = s;
+    } else {
+        q->parent->rChild = s;
+    }
+    TreeNode<T> *q_parent = q->parent;
+
+    if (q != ptr) //swap q and ptr
+    //q is the succ of ptr
+    //and ptr is the node to be deleted
+    {
+        q->parent = ptr->parent;
+        if (q->parent->lChild == ptr) {
+            q->parent->lChild = q;
+        } else {
+            q->parent->rChild = q;
+        }
+        q->lChild = ptr->lChild;
+        q->rChild = ptr->rChild;
+        if (q->lChild) {
+            q->lChild->parent = q;
+        }
+        if (q->rChild) {
+            q->rChild->parent = q;
+        }
+        q->n = ptr->n;
+        q->height = ptr->height;
+        ptr->lChild = nullptr;
+        ptr->rChild = nullptr;
+    }
+    if (q_parent == ptr)
+        q_parent = q; //now q has been in ptr's position
+    for (auto parent = q_parent; parent; parent = parent->parent) {
+        --parent->n;
+    }
+    for (auto parent = q_parent; parent; parent = parent->parent) {
+        parent->update_height();
+        if (parent == root)
+            break;
+        if (parent->get_imbalance_factor() > 1) { //check LR double-rotation case
+            if (parent->lChild->get_imbalance_factor() < 0) {
+                left_rotate(parent->lChild);
+            }
+            //else ll case
+            right_rotate(parent);
+            break;
+        } else if (parent->get_imbalance_factor() < -1) {
+            //check RL case
+            if (parent->rChild->get_imbalance_factor() > 0) {
+                right_rotate(parent->rChild);
+            }
+            left_rotate(parent);
+            break;
+        }
+    }
+    dataAlloc.destroy(ptr);
+    dataAlloc.deallocate(ptr);
+    return res;
+}
+
+template<typename T, typename Alloc>
+typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::find(const_reference value)
+{
+    node_type *ptr = root->lChild;
+    while (ptr) {
+        if (ptr->data == value)
+            return iterator(ptr);
+        else if (ptr->data < value) {
+            ptr = ptr->rChild;
+        } else {
+            ptr = ptr->lChild;
+        }
+    }
+    return end();
+}
+
+template<typename T, typename Alloc>
+typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::begin()
+{
+    node_type *ptr = root;
+    while (ptr->lChild) {
+        ptr = ptr->lChild;
+    }
+    return iterator(ptr);
+}
+
+template<typename T, typename Alloc>
+typename AVLTree<T, Alloc>::const_iterator AVLTree<T, Alloc>::begin() const
+{
+    return static_cast<const_iterator>(begin());
+}
+
+template<typename T, typename Alloc>
+typename AVLTree<T, Alloc>::const_iterator AVLTree<T, Alloc>::cbegin() const
+{
+    return static_cast<const_iterator>(begin());
+}
+template<typename T, typename Alloc>
+typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::end()
+{
+    return iterator(root);
+}
+
+template<typename T, typename Alloc>
+typename AVLTree<T, Alloc>::const_iterator AVLTree<T, Alloc>::end() const
+{
+    return const_iterator(root);
+}
+
+template<typename T, typename Alloc>
+typename AVLTree<T, Alloc>::const_iterator AVLTree<T, Alloc>::cend() const
+{
+    return const_iterator(root);
+}
 
 template<typename T, typename Alloc>
 typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::at(size_type i)

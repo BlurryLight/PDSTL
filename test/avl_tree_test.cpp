@@ -72,6 +72,27 @@ MU_TEST(test_avl_tree_check)
             mu_assert_int_eq(i, it[i]);
         }
     }
+    //find
+    {
+        AVLTree<int> it;
+        for (int i = 0; i != 10; ++i)
+            it.insert(i);
+        for (int i = 0; i != 10; ++i) {
+            mu_assert_int_eq(i, *it.find(i));
+        }
+    }
+
+    //erase
+    {
+        AVLTree<int> it;
+        for (int i = 0; i != 10; ++i)
+            it.insert(i);
+        for (int i = 0; i != 5; ++i) {
+            mu_assert_int_eq(i + 1, *it.erase(it.at(0)));
+        }
+        //erase(find())
+        mu_assert_int_eq(9, *it.erase(it.find(8)));
+    }
 }
 
 MU_TEST_SUITE(test_avl_tree_suite)
