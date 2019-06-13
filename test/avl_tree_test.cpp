@@ -1,6 +1,9 @@
 #include "avl_tree_impl.hpp"
 #include "minunit.h"
 #include <algorithm> //std
+#include <chrono>
+#include <iostream>
+#include <vector>
 
 using namespace pdstl;
 
@@ -92,6 +95,73 @@ MU_TEST(test_avl_tree_check)
         }
         //erase(find())
         mu_assert_int_eq(9, *it.erase(it.find(8)));
+    }
+    //empty && size
+    {
+        AVLTree<int> it;
+        mu_check(it.empty());
+        mu_assert_int_eq(0, it.size());
+        it.insert(5);
+        mu_assert_int_eq(1, it.size());
+        mu_check(!it.empty());
+        it.erase(it.find(5));
+        mu_check(it.empty());
+    }
+    //remove
+    {
+        AVLTree<int> it;
+        it.insert(3);
+        it.insert(2);
+        it.insert(1);
+        it.remove(3);
+
+        mu_assert_int_eq(2, it.size());
+        mu_assert_int_eq(1, *it.at(0));
+        mu_assert_int_eq(2, *it.at(1));
+    }
+
+    //swap
+    {
+        AVLTree<int> it;
+        it.insert(3);
+        it.insert(2);
+        it.insert(1);
+
+        AVLTree<int> it2;
+        it2.swap(it);
+        mu_check(it.empty());
+        mu_check(it2.size() == 3);
+    }
+
+    //deep copy
+    {
+        AVLTree<int> it;
+        it.insert(3);
+        it.insert(2);
+        it.insert(1);
+        AVLTree<int> it2;
+        it2 = it;
+
+        mu_check(it[0] == it2[0]);
+        mu_check(it[1] == it2[1]);
+        mu_check(it[2] == it2[2]);
+        mu_check(&it[0] != &it2[0]);
+    }
+
+    //large number
+    {
+        std::vector<int> values(1000000);
+        for (int i = 0; i < values.size(); i++)
+            values[i] = i + 1;
+        std::random_shuffle(values.begin(), values.end());
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        AVLTree<int> it;
+        for (int i = 0; i < values.size(); i++)
+            it.insert(values[i]);
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        std::cout << "Time difference = "
+                  << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
+                  << std::endl;
     }
 }
 

@@ -215,6 +215,26 @@ public:
 
 private:
     node_type *ptr;
+    template<typename _T, typename PointerA, typename ReferenceA, typename PointerB, typename ReferenceB>
+    friend bool operator==(const TreeIterator<_T, PointerA, ReferenceA> &a,
+                           const TreeIterator<_T, PointerB, ReferenceB> &b);
+
+    template<typename _T, typename PointerA, typename ReferenceA, typename PointerB, typename ReferenceB>
+    friend bool operator!=(const TreeIterator<_T, PointerA, ReferenceA> &a,
+                           const TreeIterator<_T, PointerB, ReferenceB> &b);
+    template<typename _T, typename PointerA, typename ReferenceA, typename PointerB, typename ReferenceB>
+    friend bool operator<(const TreeIterator<_T, PointerA, ReferenceA> &a,
+                          const TreeIterator<_T, PointerB, ReferenceB> &b);
+
+    template<typename _T, typename PointerA, typename ReferenceA>
+    friend bool operator==(const TreeIterator<_T, PointerA, ReferenceA> &a,
+                           const TreeIterator<_T, PointerA, ReferenceA> &b);
+    template<typename _T, typename PointerA, typename ReferenceA>
+    friend bool operator!=(const TreeIterator<_T, PointerA, ReferenceA> &a,
+                           const TreeIterator<_T, PointerA, ReferenceA> &b);
+    template<typename _T, typename PointerA, typename ReferenceA>
+    friend bool operator<(const TreeIterator<_T, PointerA, ReferenceA> &a,
+                          const TreeIterator<_T, PointerA, ReferenceA> &b);
 };
 
 template<typename T, typename PointerA, typename ReferenceA, typename PointerB, typename ReferenceB>
@@ -275,6 +295,13 @@ public:
     typedef T *pointer;
     typedef TreeNode<T> node_type;
 
+    //interfaces
+    AVLTree() noexcept;
+    AVLTree(const AVLTree &other) noexcept;
+    AVLTree(AVLTree &&other) noexcept;
+    AVLTree &operator=(const AVLTree &other);
+    ~AVLTree() noexcept;
+
     iterator insert(const T &val);
     iterator insert(T &&val);
 
@@ -282,6 +309,7 @@ public:
     reference operator[](size_type i);
     const_reference operator[](size_type i) const;
     iterator erase(iterator it);
+    void remove(const_reference value);
     iterator find(const_reference value);
 
     iterator begin();
@@ -290,6 +318,9 @@ public:
     iterator end();
     const_iterator end() const;
     const_iterator cend() const;
+    bool empty() const { return root->lChild == nullptr; }
+    size_type size() const { return root->n; }
+    void swap(AVLTree &other) { std::swap(this->root, other.root); }
 
 #ifdef DEBUG_FLAG
 public:
@@ -326,11 +357,11 @@ private:
         new_root->n = root->n;
         new_root->height = root->height;
         if (root->lChild) {
-            new_root->lChild = deep_copy(root->lChild);
+            new_root->lChild = deep_copy_recur(root->lChild);
             new_root->lChild->parent = new_root;
         }
         if (root->rChild) {
-            new_root->rChild = deep_copy(root->rChild);
+            new_root->rChild = deep_copy_recur(root->rChild);
             new_root->rChild->parent = new_root;
         }
         return new_root;
@@ -339,13 +370,6 @@ private:
     void right_rotate(node_type *root);
 
     void left_rotate(node_type *root);
-
-public:
-    //interfaces
-    AVLTree() noexcept;
-    AVLTree(const AVLTree &other) noexcept;
-    AVLTree(AVLTree &&other) noexcept;
-    ~AVLTree() noexcept;
 };
 template<typename T, typename Alloc>
 AVLTree<T, Alloc>::AVLTree() noexcept
@@ -364,6 +388,13 @@ AVLTree<T, Alloc>::AVLTree(AVLTree &&other) noexcept
     root = other.root;
     other.root = createNode();
     other.root->n = 0;
+}
+
+template<typename T, typename Alloc>
+AVLTree<T, Alloc> &AVLTree<T, Alloc>::operator=(const AVLTree &other)
+{
+    root = deep_copy_recur(other.root);
+    return *this;
 }
 template<typename T, typename Alloc>
 AVLTree<T, Alloc>::~AVLTree() noexcept
@@ -501,7 +532,6 @@ typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::insert(const T &val)
         branch_height = parent->height;
         parent = parent->parent;
     }
-    parent->update_n();
     parent->update_height();
     return res;
 }
@@ -578,7 +608,6 @@ typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::insert(T &&val)
         branch_height = parent->height;
         parent = parent->parent;
     }
-    parent->update_n();
     parent->update_height();
     return res;
 }
@@ -667,6 +696,17 @@ typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::erase(iterator it)
     dataAlloc.destroy(ptr);
     dataAlloc.deallocate(ptr);
     return res;
+}
+
+template<typename T, typename Alloc>
+void AVLTree<T, Alloc>::remove(const_reference value)
+{
+    iterator it = find(value);
+    if (it == end()) {
+        return;
+    } else {
+        this->erase(it);
+    }
 }
 
 template<typename T, typename Alloc>
