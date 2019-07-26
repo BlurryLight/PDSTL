@@ -1,5 +1,6 @@
-#ifndef PAIR_HPP
+﻿#ifndef PAIR_HPP
 #define PAIR_HPP
+#include "iterator.hpp"
 #include "utility.hpp"
 #include <algorithm> //std::swap
 namespace pdstl {
@@ -9,6 +10,7 @@ struct pair
 {
     typedef T1 first_type;
     typedef T2 second_type;
+    typedef pair<T1, T2> pair_type;
 
     T1 first;
     T2 second;
@@ -118,6 +120,19 @@ pair<T1, T2> make_pair(T1 t, T2 u)
 {
     return pair<T1, T2>(t, u);
 }
+template<typename U>
+struct pair_help
+{
+    typedef void type;
+};
+
+template<typename T, typename = void>
+struct isPair : false_type
+{}; //fallback
+
+template<typename T>
+struct isPair<T, typename pair_help<typename T::pair_type>::type> : true_type
+{};
 
 } // namespace pdstl
 #endif

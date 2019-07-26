@@ -1,4 +1,4 @@
-#ifndef AVL_TREE_HPP
+﻿#ifndef AVL_TREE_HPP
 #define AVL_TREE_HPP
 
 //#define DEBUG_FLAG
@@ -8,11 +8,14 @@
 #endif
 
 #include "allocator.h"
+#include "funcional.hpp"
 #include "iterator.hpp"
 #include "pair.hpp"
 #include "utility.hpp"
 
 #include <algorithm> //std::max
+#include <functional>
+#include <type_traits>
 
 namespace pdstl {
 
@@ -156,7 +159,7 @@ public:
 template<typename T, typename Pointer, typename Reference>
 struct TreeIterator
 {
-    template<typename U, typename V>
+    template<typename U, typename N, typename M, typename V>
     friend class AVLTree;
 
     typedef size_t size_type;
@@ -279,9 +282,14 @@ bool operator<(const TreeIterator<T, Pointer, Reference> &a,
     return *a < *b;
 }
 
-template<typename T, typename Alloc = pdstl::Allocator<TreeNode<T>>>
+template<typename T,
+         typename Compare = std::less<T>,
+         typename keytype = T,
+         typename Alloc = pdstl::Allocator<TreeNode<T>>>
 class AVLTree
 {
+    template<typename Key1, typename T1, typename Compare1, typename Alloc1>
+    friend class map;
     //traits
 public:
     typedef T value_type;
@@ -304,13 +312,43 @@ public:
 
     iterator insert(const T &val);
     iterator insert(T &&val);
+    iterator insert_here(const_iterator hint, const T &val);
 
     iterator at(size_type i);
     reference operator[](size_type i);
     const_reference operator[](size_type i) const;
     iterator erase(iterator it);
     void remove(const_reference value);
-    iterator find(const_reference value);
+
+    iterator find(const_reference value)
+    {
+        node_type *ptr = root->lChild;
+        while (ptr) {
+            if (ptr->data == value)
+                return iterator(ptr);
+            else if (compare_method(ptr->data, value)) {
+                ptr = ptr->rChild;
+            } else {
+                ptr = ptr->lChild;
+            }
+        }
+        return end();
+    }
+
+    iterator findByKey(keytype key)
+    {
+        node_type *ptr = root->lChild;
+        while (ptr) {
+            if (ptr->data.first == key)
+                return iterator(ptr);
+            else if (ptr->data.first < key) {
+                ptr = ptr->rChild;
+            } else {
+                ptr = ptr->lChild;
+            }
+        }
+        return end();
+    }
 
     iterator begin();
     const_iterator begin() const;
@@ -322,12 +360,15 @@ public:
     size_type size() const { return root->n; }
     void swap(AVLTree &other) { std::swap(this->root, other.root); }
 
+    void clear();
+
 #ifdef DEBUG_FLAG
 public:
 #else
 private:
 #endif
 
+    Compare compare_method;
     Alloc dataAlloc;
     node_type *root;
     node_type *createNode(const T &val = T())
@@ -371,44 +412,45 @@ private:
 
     void left_rotate(node_type *root);
 };
-template<typename T, typename Alloc>
-AVLTree<T, Alloc>::AVLTree() noexcept
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+AVLTree<T, Compare, Keytype, Alloc>::AVLTree() noexcept
 {
     root = createNode();
     root->n = 0;
 }
-template<typename T, typename Alloc>
-AVLTree<T, Alloc>::AVLTree(const AVLTree &other) noexcept
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+AVLTree<T, Compare, Keytype, Alloc>::AVLTree(const AVLTree &other) noexcept
 {
     root = deep_copy_recur(other.root);
 }
-template<typename T, typename Alloc>
-AVLTree<T, Alloc>::AVLTree(AVLTree &&other) noexcept
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+AVLTree<T, Compare, Keytype, Alloc>::AVLTree(AVLTree &&other) noexcept
 {
     root = other.root;
     other.root = createNode();
     other.root->n = 0;
 }
 
-template<typename T, typename Alloc>
-AVLTree<T, Alloc> &AVLTree<T, Alloc>::operator=(const AVLTree &other)
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+AVLTree<T, Compare, Keytype, Alloc> &AVLTree<T, Compare, Keytype, Alloc>::operator=(
+    const AVLTree &other)
 {
     root = deep_copy_recur(other.root);
     return *this;
 }
-template<typename T, typename Alloc>
-AVLTree<T, Alloc>::~AVLTree() noexcept
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+AVLTree<T, Compare, Keytype, Alloc>::~AVLTree() noexcept
 {
     clear_node_recur(root->lChild);
-    clear_node_recur(root->rChild);
+    //    clear_node_recur(root->rChild); //nonsense root->rchild should always be nullptr
     root->lChild = nullptr;
     root->rChild = nullptr;
     dataAlloc.destroy(root);
     dataAlloc.deallocate(root);
 }
 
-template<typename T, typename Alloc>
-void AVLTree<T, Alloc>::left_rotate(node_type *root)
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+void AVLTree<T, Compare, Keytype, Alloc>::left_rotate(node_type *root)
 {
     node_type *new_root = root->rChild;
     node_type *tmp = root->rChild->lChild;
@@ -437,8 +479,8 @@ void AVLTree<T, Alloc>::left_rotate(node_type *root)
     }
 }
 
-template<typename T, typename Alloc>
-void AVLTree<T, Alloc>::right_rotate(node_type *root)
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+void AVLTree<T, Compare, Keytype, Alloc>::right_rotate(node_type *root)
 {
     /*
          *   root
@@ -475,8 +517,9 @@ void AVLTree<T, Alloc>::right_rotate(node_type *root)
     }
 }
 
-template<typename T, typename Alloc>
-typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::insert(const T &val)
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+typename AVLTree<T, Compare, Keytype, Alloc>::iterator AVLTree<T, Compare, Keytype, Alloc>::insert(
+    const T &val)
 {
     iterator res;
     node_type *parent = root; //parent will be the parent of newly inserted node
@@ -484,7 +527,7 @@ typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::insert(const T &val)
         ++parent->n;
         //root is a dummy node
         //real AVL is in its left-subtree
-        if (parent == root || parent->data > val) {
+        if (parent == root || compare_method(val, parent->data)) {
             if (parent->lChild) {
                 parent = parent->lChild;
             } else {
@@ -538,8 +581,9 @@ typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::insert(const T &val)
 
 //This T&& is not forwarding reference
 //it absolutely is a RVALUE Reference
-template<typename T, typename Alloc>
-typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::insert(T &&val)
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+typename AVLTree<T, Compare, Keytype, Alloc>::iterator AVLTree<T, Compare, Keytype, Alloc>::insert(
+    T &&val)
 {
     iterator res;
     node_type *parent = root; //parent will be the parent of newly inserted node
@@ -547,7 +591,7 @@ typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::insert(T &&val)
         ++parent->n;
         //root is a dummy node
         //real AVL is in its left-subtree
-        if (parent == root || parent->data > val) {
+        if (parent == root || compare_method(val, parent->data)) {
             if (parent->lChild) {
                 parent = parent->lChild;
             } else {
@@ -612,8 +656,80 @@ typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::insert(T &&val)
     return res;
 }
 
-template<typename T, typename Alloc>
-typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::erase(iterator it)
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+typename AVLTree<T, Compare, Keytype, Alloc>::iterator
+AVLTree<T, Compare, Keytype, Alloc>::insert_here(const_iterator hint, const T &val)
+{
+    iterator res;
+    node_type *parent = hint.ptr; //insert node as close as possible to hint
+    node_type *tmp = parent;
+    while (tmp != this->root) {
+        ++tmp->n;
+        tmp = tmp->parent;
+    }
+    ++tmp->n;
+
+    while (true) {
+        ++parent->n;
+        //root is a dummy node
+        //real AVL is in its left-subtree
+        if (parent == root || compare_method(val, parent->data)) {
+            if (parent->lChild) {
+                parent = parent->lChild;
+            } else {
+                parent->lChild = createNode(val);
+                parent->lChild->parent = parent;
+                res = iterator(parent->lChild);
+                break;
+            }
+        }
+        //right sub_tree
+        else {
+            if (parent->rChild) {
+                parent = parent->rChild;
+            } else {
+                parent->rChild = createNode(val);
+                parent->rChild->parent = parent;
+                res = iterator(parent->rChild);
+                break;
+            }
+        }
+    }
+
+    int branch_height = 1;
+    while (parent) {
+        if (parent == root)
+            break;
+        if (parent->height > branch_height)
+            break;
+        parent->height = branch_height + 1;
+        if (parent->get_imbalance_factor() > 1) {
+            //LR case
+            if (parent->lChild->get_imbalance_factor() < 0) {
+                left_rotate(parent->lChild);
+            }
+            //LL case
+            right_rotate(parent);
+            break;
+        } else if (parent->get_imbalance_factor() < -1) {
+            //RL case
+            if (parent->rChild->get_imbalance_factor() > 0) {
+                right_rotate(parent->rChild);
+            }
+            //rr case
+            left_rotate(parent);
+            break;
+        }
+        branch_height = parent->height;
+        parent = parent->parent;
+    }
+    parent->update_height();
+    return res;
+}
+
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+typename AVLTree<T, Compare, Keytype, Alloc>::iterator AVLTree<T, Compare, Keytype, Alloc>::erase(
+    iterator it)
 {
     iterator res(it);
     ++res;
@@ -698,8 +814,8 @@ typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::erase(iterator it)
     return res;
 }
 
-template<typename T, typename Alloc>
-void AVLTree<T, Alloc>::remove(const_reference value)
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+void AVLTree<T, Compare, Keytype, Alloc>::remove(const_reference value)
 {
     iterator it = find(value);
     if (it == end()) {
@@ -709,24 +825,22 @@ void AVLTree<T, Alloc>::remove(const_reference value)
     }
 }
 
-template<typename T, typename Alloc>
-typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::find(const_reference value)
-{
-    node_type *ptr = root->lChild;
-    while (ptr) {
-        if (ptr->data == value)
-            return iterator(ptr);
-        else if (ptr->data < value) {
-            ptr = ptr->rChild;
-        } else {
-            ptr = ptr->lChild;
-        }
-    }
-    return end();
-}
+//template<typename U>
+//struct pair_help
+//{
+//    typedef void type;
+//};
 
-template<typename T, typename Alloc>
-typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::begin()
+//template<typename T, typename = void>
+//struct isPair : false_type
+//{}; //fallback
+
+//template<typename T>
+//struct isPair<T, typename pair_help<typename T::pair_type>::type> : true_type
+//{};
+
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+typename AVLTree<T, Compare, Keytype, Alloc>::iterator AVLTree<T, Compare, Keytype, Alloc>::begin()
 {
     node_type *ptr = root;
     while (ptr->lChild) {
@@ -735,37 +849,51 @@ typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::begin()
     return iterator(ptr);
 }
 
-template<typename T, typename Alloc>
-typename AVLTree<T, Alloc>::const_iterator AVLTree<T, Alloc>::begin() const
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+typename AVLTree<T, Compare, Keytype, Alloc>::const_iterator
+AVLTree<T, Compare, Keytype, Alloc>::begin() const
 {
     return static_cast<const_iterator>(begin());
 }
 
-template<typename T, typename Alloc>
-typename AVLTree<T, Alloc>::const_iterator AVLTree<T, Alloc>::cbegin() const
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+typename AVLTree<T, Compare, Keytype, Alloc>::const_iterator
+AVLTree<T, Compare, Keytype, Alloc>::cbegin() const
 {
     return static_cast<const_iterator>(begin());
 }
-template<typename T, typename Alloc>
-typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::end()
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+typename AVLTree<T, Compare, Keytype, Alloc>::iterator AVLTree<T, Compare, Keytype, Alloc>::end()
 {
     return iterator(root);
 }
 
-template<typename T, typename Alloc>
-typename AVLTree<T, Alloc>::const_iterator AVLTree<T, Alloc>::end() const
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+typename AVLTree<T, Compare, Keytype, Alloc>::const_iterator
+AVLTree<T, Compare, Keytype, Alloc>::end() const
 {
     return const_iterator(root);
 }
 
-template<typename T, typename Alloc>
-typename AVLTree<T, Alloc>::const_iterator AVLTree<T, Alloc>::cend() const
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+typename AVLTree<T, Compare, Keytype, Alloc>::const_iterator
+AVLTree<T, Compare, Keytype, Alloc>::cend() const
 {
     return const_iterator(root);
 }
 
-template<typename T, typename Alloc>
-typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::at(size_type i)
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+void AVLTree<T, Compare, Keytype, Alloc>::clear()
+{
+    clear_node_recur(root->lChild);
+    root->lChild = nullptr;
+    root->height = 1;
+    root->n = 0;
+}
+
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+typename AVLTree<T, Compare, Keytype, Alloc>::iterator AVLTree<T, Compare, Keytype, Alloc>::at(
+    size_type i)
 {
     if (i >= root->n || i < 0)
         exit(1);
@@ -795,14 +923,16 @@ typename AVLTree<T, Alloc>::iterator AVLTree<T, Alloc>::at(size_type i)
     return iterator(real_root);
 }
 
-template<typename T, typename Alloc>
-typename AVLTree<T, Alloc>::reference AVLTree<T, Alloc>::operator[](size_type i)
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+typename AVLTree<T, Compare, Keytype, Alloc>::reference AVLTree<T, Compare, Keytype, Alloc>::
+operator[](size_type i)
 {
     return *(at(i));
 }
 
-template<typename T, typename Alloc>
-typename AVLTree<T, Alloc>::const_reference AVLTree<T, Alloc>::operator[](size_type i) const
+template<typename T, typename Compare, typename Keytype, typename Alloc>
+typename AVLTree<T, Compare, Keytype, Alloc>::const_reference AVLTree<T, Compare, Keytype, Alloc>::
+operator[](size_type i) const
 {
     return *(at(i));
 }

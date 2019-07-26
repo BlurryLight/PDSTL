@@ -1,4 +1,4 @@
-#include "avl_tree_impl.hpp"
+﻿#include "avl_tree_impl.hpp"
 #include "minunit.h"
 #include <algorithm> //std
 #include <chrono>
@@ -42,6 +42,12 @@ MU_TEST(test_avl_tree_check)
         mu_assert_int_eq(2, *it.insert(2));
         mu_assert_int_eq(3, *it.insert(3));
         mu_assert_int_eq(4, *it.insert(4));
+
+        it.insert_here(it.find(4), 5);
+        //        it.root->Display();
+        //        it.root->Print();
+
+        mu_assert_int_eq(5, *it.at(4));
     }
 
     //insert char and rotate
@@ -162,6 +168,29 @@ MU_TEST(test_avl_tree_check)
         std::cout << "Time difference = "
                   << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
                   << std::endl;
+    }
+    //pairs
+    {
+        struct key_compare
+        {
+            bool operator()(const pair<int, int> &a, const pair<int, int> &b)
+            {
+                return a.first < b.first;
+            }
+        };
+
+        AVLTree<pair<int, int>, key_compare, int> it;
+        it.insert({1, 2});
+        it.insert({2, 3});
+        it.insert({3, 4});
+        it.insert({4, 5});
+
+        for (int i = 0; i < 4; i++) {
+            mu_assert_int_eq(i + 1, it[i].first);
+            mu_assert_int_eq(i + 2, it[i].second);
+        }
+
+        mu_check(it.findByKey(4)->second == 5);
     }
 }
 
